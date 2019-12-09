@@ -72,16 +72,18 @@ class ServeurREST {
         //
         install(CallLogging)
         install(XForwardedHeaderSupport)
+/*
         install(HttpsRedirect) {
             sslPort = 443
         }
-
+*/
 
         install(Sessions) {
-            cookie<LoginSession>("SESSION", storage = SessionStorageMemory()) {
+            cookie<LoginSession>("SESSION") {
                 val secretSignKey = hex("000102030405060708090a0b0c0d0e0f")
-                transform(SessionTransportTransformerMessageAuthentication(secretSignKey))
+                transform(SessionTransportTransformerMessageAuthentication(secretSignKey, "HmacSHA256"))
                 cookie.extensions["SameSite"] = "lax"
+                cookie.path = "/"
             }
         }
 
@@ -95,12 +97,15 @@ class ServeurREST {
                 }
                 get("co") {
                     val session = call.sessions.get<LoginSession>() ?: LoginSession(userId = "0")
+                    call.sessions.set<LoginSession>(session)
                     call.respond(Response(status = "OK", data = "route = '/'"))
                 }
                 get("{userId}") {
                     val params = call.receiveParameters()
-                    val userId = params.get("userId")
-                    call.respond(Response(status = "OK", data = "route = '/user/${userId}'"))
+                    val userId = params.get("userId") ?: ""
+                    val status =
+                        if (call.sessions.get<LoginSession>()!!.equals(LoginSession(userId))) "OK" else "NOT OK"
+                    call.respond(Response(status = status, data = "route = '/user/${userId}'"))
                 }
             }
             route("/callback") {

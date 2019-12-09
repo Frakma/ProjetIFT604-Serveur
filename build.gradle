@@ -41,9 +41,18 @@ dependencies {
     compile "io.ktor:ktor-server-sessions:$ktor_version"
 
     compile "io.ktor:ktor-serialization:$ktor_version"
+    compile "io.ktor:ktor-network-tls:$ktor_version"
 
     compile group: 'joda-time', name: 'joda-time', version: '2.10.5'
     compile group: 'org.json', name: 'json', version: '20190722'
 
     testCompile "io.ktor:ktor-server-tests:$ktor_version"
 }
+/*
+task generateJks(type: JavaExec, dependsOn: 'classes') {
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'src.server.CertificateGenerator'
+}
+
+getTasksByName("run", false).first().dependsOn('generateJks')
+*/
