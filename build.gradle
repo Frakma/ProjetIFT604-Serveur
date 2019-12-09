@@ -43,6 +43,9 @@ dependencies {
     compile "io.ktor:ktor-serialization:$ktor_version"
     compile "io.ktor:ktor-network-tls:$ktor_version"
 
+    compile "io.ktor:ktor-client-js:$ktor_version"
+    compile "io.ktor:ktor-client-okhttp:$ktor_version"
+
     compile group: 'joda-time', name: 'joda-time', version: '2.10.5'
     compile group: 'org.json', name: 'json', version: '20190722'
 

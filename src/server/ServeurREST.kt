@@ -23,6 +23,7 @@ import io.ktor.sessions.*
 import io.ktor.util.hex
 import java.lang.reflect.Modifier
 import java.text.DateFormat
+import java.util.*
 import kotlin.collections.set
 
 
@@ -89,15 +90,15 @@ class ServeurREST {
 
         routing {
             get("/") {
-                call.respond(Response(status = "|..|"))
+                val session = call.sessions.get<LoginSession>() ?: LoginSession(userId = UUID.randomUUID().toString())
+                call.sessions.set<LoginSession>(session)
+                call.respond(Response(status = "OK", data = session.userId))
             }
             route("/user") {
                 get("") {
                     call.respond(Response(status = "O__o"))
                 }
                 get("co") {
-                    val session = call.sessions.get<LoginSession>() ?: LoginSession(userId = "0")
-                    call.sessions.set<LoginSession>(session)
                     call.respond(Response(status = "OK", data = "route = '/'"))
                 }
                 get("{userId}") {
@@ -116,7 +117,8 @@ class ServeurREST {
             }
             route("/search") {
                 post("") {
-                    redirect("/", permanent = false)
+
+                redirect("/", permanent = false)
                     call.respond(Response(status = "OK"))
                 }
             }
@@ -153,4 +155,5 @@ class ServeurREST {
         server.start(wait = true)
     }
 }
+
 
