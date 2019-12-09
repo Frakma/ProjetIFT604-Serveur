@@ -86,29 +86,33 @@ class ServeurREST {
         }
 
         routing {
-            route("/") {
-                println("req")
+            get("/") {
+                call.respond(Response(status = "|..|"))
+            }
+            route("/user") {
                 get("") {
+                    call.respond(Response(status = "O__o"))
+                }
+                get("co") {
                     val session = call.sessions.get<LoginSession>() ?: LoginSession(userId = "0")
+                    call.respond(Response(status = "OK", data = "route = '/'"))
+                }
+                get("{userId}") {
+                    val params = call.receiveParameters()
+                    val userId = params.get("userId")
+                    call.respond(Response(status = "OK", data = "route = '/user/${userId}'"))
+                }
+            }
+            route("/callback") {
+                get("{args...}") {
+                    val params = call.receiveParameters()
+                    call.respond(Response(status = "OK", data = "route = '/callback/$params'"))
+                }
+            }
+            route("/search") {
+                post("") {
+                    redirect("/", permanent = false)
                     call.respond(Response(status = "OK"))
-                }
-                route("user/") {
-                    get("{userId}") {
-                        val params = call.receiveParameters()
-                        val userId = params.get("userId")
-                        call.respond(Response(status = "OK"))
-                    }
-                }
-                route("callback/") {
-                    get("{args...}") {
-                        val params = call.receiveParameters()
-                        call.respond(Response(status = "OK"))
-                    }
-                }
-                route("search/") {
-                    post("") {
-                        redirect("/", permanent = false)
-                    }
                 }
             }
         }
@@ -126,8 +130,7 @@ class ServeurREST {
         return Gson().toJson(rep)
     }
 
-    data class Response(val status: String)
-
+    data class Response(val status: String, val data: String = "")
     data class LoginSession(val userId: String)
 
     class HttpRedirectException(val location: String, val permanent: Boolean = false) : RuntimeException()
@@ -135,8 +138,14 @@ class ServeurREST {
     fun redirect(location: String, permanent: Boolean = false): Nothing =
         throw HttpRedirectException(location, permanent)
 
+    fun StatusPages.Configuration.registerRedirections() {
+        exception<HttpRedirectException> { cause ->
+            call.respondRedirect(cause.location, cause.permanent)
+        }
+    }
 
     fun start() {
-        server.start(false)
+        server.start(wait = true)
     }
 }
+
