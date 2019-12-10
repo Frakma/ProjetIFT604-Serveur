@@ -25,7 +25,9 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.sessions.*
 import io.ktor.util.hex
+import okhttp3.ResponseBody
 import projetift604.server.Repository
+import projetift604.server.ServeurFB
 import projetift604.server.UserRepository
 import projetift604.user.User
 import java.lang.reflect.Modifier
@@ -130,10 +132,18 @@ class ServeurREST {
                     //call.respond(Response(status = "OK"))
                 }
                 post("") {
-                    call.respond(Response("NOT OK"))
+                    val placesCall = searchPlaces(
+                        center = "45.3865903,-71.9261441",
+                        distance = "3000",
+                        q = "bar",
+                        fields = "id,name,page",
+                        limit = "10"
+                    )
+                    call.respond(Response(status = "OK", data = placesCall.toString()))
                 }
             }
         }
+
 
         /*
         handleRequest(HttpMethod.Get, "/", {
@@ -147,6 +157,32 @@ class ServeurREST {
     val repository: Repository<String, User> = UserRepository()
     fun findUser(userId: String): User? {
         return repository.get(userId)
+    }
+
+    val serverFB by lazy {
+        ServeurFB.create()
+    }
+
+    /**
+     * Call ServerFB#searchForPlaces
+     * Not async --> execute()
+     */
+    fun searchPlaces(center: String, distance: String, q: String, fields: String, limit: String): ResponseBody? {
+
+        val callPlaces = serverFB.searchForPlaces(
+            center = center,
+            distance = distance,
+            q = q,
+            fields = fields,
+            limit = limit
+        )
+
+        //val callPlaces = serverFB.getAccess_token()
+        val resp = callPlaces.execute()
+        val code = resp.code()
+        val body = resp.body()
+        System.out.println(resp)
+        return body
     }
 
     fun initUser(userId: String): User {

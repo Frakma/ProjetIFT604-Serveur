@@ -45,6 +45,7 @@ dependencies {
 
     compile "io.ktor:ktor-client-core:$ktor_version"
     compile "io.ktor:ktor-client-js:$ktor_version"
+    compile "org.jetbrains.anko:anko-design:0.10.5"
 
     compile "com.squareup.retrofit2:retrofit:2.3.0"
     compile "com.squareup.retrofit2:adapter-rxjava2:2.3.0"
