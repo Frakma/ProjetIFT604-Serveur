@@ -9,8 +9,10 @@ import io.ktor.application.install
 import io.ktor.features.*
 import io.ktor.gson.GsonConverter
 import io.ktor.gson.gson
+import io.ktor.http.CacheControl
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.CachingOptions
 import io.ktor.request.receiveParameters
 import io.ktor.response.respond
 import io.ktor.response.respondRedirect
@@ -77,6 +79,15 @@ class ServeurREST {
         //
         install(CallLogging)
         install(XForwardedHeaderSupport)
+
+        install(CachingHeaders) {
+            options { outgoingContent ->
+                when (outgoingContent.contentType?.withoutParameters()) {
+                    ContentType.Text.CSS -> CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 24 * 60 * 60))
+                    else -> null
+                }
+            }
+        }
 /*
         install(HttpsRedirect) {
             sslPort = 443

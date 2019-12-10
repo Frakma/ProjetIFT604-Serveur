@@ -46,6 +46,12 @@ dependencies {
     compile "io.ktor:ktor-client-core:$ktor_version"
     compile "io.ktor:ktor-client-js:$ktor_version"
 
+    compile "com.squareup.retrofit2:retrofit:2.3.0"
+    compile "com.squareup.retrofit2:adapter-rxjava2:2.3.0"
+    compile "com.squareup.retrofit2:converter-gson:2.3.0"
+
+    compile "io.reactivex.rxjava2:rxandroid:2.0.1"
+
     compile group: 'joda-time', name: 'joda-time', version: '2.10.5'
     compile group: 'org.json', name: 'json', version: '20190722'
 
