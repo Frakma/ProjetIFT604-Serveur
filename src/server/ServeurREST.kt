@@ -1,5 +1,7 @@
 package serveur
 
+
+import com.google.gson.FieldNamingPolicy
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import io.ktor.application.call
@@ -21,6 +23,9 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.sessions.*
 import io.ktor.util.hex
+import projetift604.server.Repository
+import projetift604.server.UserRepository
+import projetift604.user.User
 import java.lang.reflect.Modifier
 import java.text.DateFormat
 import java.util.*
@@ -61,13 +66,12 @@ class ServeurREST {
                 serializeNulls()
                 serializeSpecialFloatingPointValues()
                 setDateFormat(DateFormat.DEFAULT)
+                setFieldNamingPolicy(FieldNamingPolicy.UPPER_CAMEL_CASE)
                 generateNonExecutableJson()
                 setLenient()
                 setVersion(0.0)
                 excludeFieldsWithModifiers(Modifier.TRANSIENT)
-                register(ContentType.Application.Json, GsonConverter(GsonBuilder().apply {
-                    // ...
-                }.create()))
+                register(ContentType.Application.Json, GsonConverter(GsonBuilder().apply {}.create()))
             }
         }
         //
@@ -90,36 +94,32 @@ class ServeurREST {
 
         routing {
             get("/") {
-                val session = call.sessions.get<LoginSession>() ?: LoginSession(userId = UUID.randomUUID().toString())
-                call.sessions.set<LoginSession>(session)
-                call.respond(Response(status = "OK", data = session.userId))
+                val session = call.sessions.get<LoginSession>()
+                val user = initUser(session?.id ?: UUID.randomUUID().toString())
+                call.sessions.set(LoginSession(user.id))
+                call.respond(Response(status = "OK", data = user.id))
             }
-            route("/user") {
-                get("") {
-                    call.respond(Response(status = "O__o"))
-                }
-                get("co") {
-                    call.respond(Response(status = "OK", data = "route = '/'"))
-                }
-                get("{userId}") {
-                    val params = call.receiveParameters()
-                    val userId = params.get("userId") ?: ""
-                    val status =
-                        if (call.sessions.get<LoginSession>()!!.equals(LoginSession(userId))) "OK" else "NOT OK"
-                    call.respond(Response(status = status, data = "route = '/user/${userId}'"))
-                }
+            get("/user/{userId?}") {
+                val params = call.parameters
+                val userId = params.get("userId") ?: call.sessions.get<LoginSession>()!!.id ?: ""
+                val user = findUser(userId)
+                val status = if (user !== null) "OK" else "NOT OK"
+                call.respond(Response(status = status, data = user.toString()))
             }
             route("/callback") {
                 get("{args...}") {
                     val params = call.receiveParameters()
                     call.respond(Response(status = "OK", data = "route = '/callback/$params'"))
                 }
+                get("") { call.respond(Response(status = "OK")) }
             }
             route("/search") {
+                get("") {
+                    redirect("/", permanent = false)
+                    //call.respond(Response(status = "OK"))
+                }
                 post("") {
-
-                redirect("/", permanent = false)
-                    call.respond(Response(status = "OK"))
+                    call.respond(Response("NOT OK"))
                 }
             }
         }
@@ -133,23 +133,27 @@ class ServeurREST {
         */
     }
 
+    val repository: Repository<String, User> = UserRepository()
+    fun findUser(userId: String): User? {
+        return repository.get(userId)
+    }
+
+    fun initUser(userId: String): User {
+        return repository.get(userId) ?: repository.add(User(userId))
+    }
+
     fun resp(rep: Response): String {
         return Gson().toJson(rep)
     }
 
     data class Response(val status: String, val data: String = "")
-    data class LoginSession(val userId: String)
+    data class LoginSession(val id: String)
 
     class HttpRedirectException(val location: String, val permanent: Boolean = false) : RuntimeException()
 
     fun redirect(location: String, permanent: Boolean = false): Nothing =
         throw HttpRedirectException(location, permanent)
 
-    fun StatusPages.Configuration.registerRedirections() {
-        exception<HttpRedirectException> { cause ->
-            call.respondRedirect(cause.location, cause.permanent)
-        }
-    }
 
     fun start() {
         server.start(wait = true)
