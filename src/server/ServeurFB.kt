@@ -57,6 +57,10 @@ interface ServeurFB {
         return generateHashWithHmac256(access_token, app_secret)
     }
 
+    /**
+     * Returns access_token_
+     * if this one equals "" then a new access_token is asked (async) and "" is returned
+     */
     private fun access_token(): String {
         System.out.println("token asked [${access_token_}]")
         if (!access_token_.equals("")) {
