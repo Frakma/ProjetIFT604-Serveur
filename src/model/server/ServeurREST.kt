@@ -298,11 +298,6 @@ class ServeurREST {
                 return search(data, 3, user, searchCall)
             }
             else -> {
-                System.out.println(
-                    "-----------------------------" +
-                            "${data}" +
-                            "-----------------------------"
-                )
                 return data
             }
         }

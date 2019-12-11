@@ -93,8 +93,8 @@ class ServeurFBProxy {
         }
 
         fun extractBody(resp: Response<ResponseBody>, resumeAt: Int? = 0, u: User?, s: SearchCall?): JSONObject {
-            System.out.println("------------------}")
-            System.out.println("EXTRACTING")
+            System.out.println("------------------")
+            System.out.println("FB RESPONSE:")
             System.out.println("${resp}")
             val code = resp.code()
             val body: ResponseBody
@@ -119,7 +119,7 @@ class ServeurFBProxy {
                 )//ServeurFBProxy.FBunauthorizedRequest()
                 else -> throw java.lang.Exception(resp.errorBody().toString())
             }
-            System.out.println("------------------}")
+            System.out.println("------------------")
             return data_
         }
 

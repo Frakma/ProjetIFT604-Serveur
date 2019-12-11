@@ -40,7 +40,7 @@ data class LastResearch(val researchHash: String, val searchCall: SearchCall) {
 
 data class UserLastResearchs(val listLastResearchs: MutableMap<SearchCall, ServeurREST.Response> = mutableMapOf()) {
     override fun toString(): String {
-        return "items:${listLastResearchs.entries}"
+        return "{items: ${listLastResearchs.entries.filter { return it.key.uri + ":" + it.value.data.length }}"
     }
 }
 
