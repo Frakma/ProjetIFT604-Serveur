@@ -1,6 +1,7 @@
 package projetift604.user
 
 import io.ktor.http.Parameters
+import projetift604.server.generateHashWithHmac256
 import serveur.ServeurREST
 import java.text.SimpleDateFormat
 import java.util.*
@@ -17,9 +18,23 @@ data class UserPref(val listPref: MutableMap<String, Pref> = mutableMapOf()) {
     }
 }
 
-data class SearchCall(val uri: String, val param: Parameters, val date: Date = Date()) {
+data class SearchCall(
+    val uri: String,
+    val param: Parameters,
+    val date: String = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(Date())
+) {
     override fun toString(): String {
-        return "{route:$uri,param:$param,date:${SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(date)}}"
+        return "{route:$uri,param:$param,date:${date}}"
+    }
+}
+
+data class LastResearch(val researchHash: String, val searchCall: SearchCall) {
+    companion object {
+        fun create(
+            searchCall: SearchCall
+        ): LastResearch {
+            return LastResearch(generateHashWithHmac256(searchCall.date, searchCall.uri + searchCall.param), searchCall)
+        }
     }
 }
 

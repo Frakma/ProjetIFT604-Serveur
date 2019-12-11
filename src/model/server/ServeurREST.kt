@@ -26,8 +26,6 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.sessions.*
 import io.ktor.util.hex
-import okhttp3.MediaType
-import okhttp3.ResponseBody
 import org.json.JSONObject
 import projetift604.server.Repository
 import projetift604.server.UserRepository
@@ -57,7 +55,7 @@ class ServeurREST {
             }
             exception<ServeurFBProxy.Companion.EmptyAccessTokenException> { e ->
                 System.out.println("empty acess token :${e}")
-                val user = initUser(e.userId)
+                val user = initUser(e.userId!!)
                 val searchCall = e.searchCall
 
                 val LOCK = Object()
@@ -65,7 +63,7 @@ class ServeurREST {
                     sleep(e.retry_in)
                     LOCK.notify()
                 }
-                val placesCall = search(e.data, e.resumeAt, user, searchCall)
+                val placesCall = search(e.data, e.resumeAt, user, searchCall!!)
 
                 val response = Response(status = "OK", data = placesCall.toString())
                 call.respond(formatResponse(searchCall, response, user))
@@ -173,7 +171,7 @@ class ServeurREST {
                     val session = call.sessions.get<LoginSession>()
                     val user = initUser(session!!.id)
 
-                    val placesCall = search(null, user = user, searchCall = searchCall)
+                    val placesCall = search(null, resumeAt = 0, user = user, searchCall = searchCall)
 
                     val response = Response(status = "OK", data = placesCall.toString())
                     call.respond(formatResponse(searchCall, response, user))
@@ -225,7 +223,7 @@ class ServeurREST {
     fun redirect(location: String, permanent: Boolean = false): Nothing =
         throw HttpRedirectException(location, permanent)
 
-    fun search(data: JSONObject?, resumeAt: Int = 0, user: User, searchCall: SearchCall): JSONObject? {
+    fun search(data: JSONObject?, resumeAt: Int? = -1, user: User, searchCall: SearchCall): JSONObject? {
         when (resumeAt) {
             0 -> {
                 return search(data, 1, user, searchCall)
@@ -240,28 +238,17 @@ class ServeurREST {
                     u = user,
                     s = searchCall
                 )
-                val code = places.code()
-                var body = places.body()
-                when (code) {
-                    190 -> ServeurFBProxy.resetAccess_token(u = user, s = searchCall)
-                    200 -> System.out.println(places)
-                    400 -> body = ResponseBody.create(
-                        MediaType.parse("application/json"),
-                        "{}"
-                    )//ServeurFBProxy.FBunauthorizedRequest()
-                }
-                val json = JSONObject(body)
-                return search(json, 2, user, searchCall)
+                return search(places, 2, user, searchCall)
             }
             2 -> {
-
+                System.out.println(data)
                 if (data!!.has("data")) {
                     val items = data.getJSONArray("data")
                     for (i in 0 until items.length()) {
                         val place = items.getJSONObject(i)
                         val name = place.getString("name")
-                            val id = place.getString("id")
-                            val fieldsWanted = ""
+                        val id = place.getString("id")
+                        val fieldsWanted = "page,location"
 
                         val place_info = ServeurFBProxy.searchForPlaceInfo(
                             placeId = id,
@@ -270,10 +257,10 @@ class ServeurREST {
                             u = user,
                             s = searchCall
                         )
-                        val body = place_info.body()
-                        val json = JSONObject(body)
-                        place.put("place_info", json)
-                        }
+                        place.put("place_info", place_info)
+                    }
+                    val data_ = JSONObject(data).put("data", items)
+                    return search(data_, 3, user, searchCall)
                 }
                 return search(data, 3, user, searchCall)
             }
