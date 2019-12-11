@@ -57,9 +57,9 @@ dependencies {
     compile group: 'joda-time', name: 'joda-time', version: '2.10.5'
     compile group: 'org.json', name: 'json', version: '20190722'
 
-    compile("org.jetbrains.exposed", "exposed-core", "0.18.1")
-    compile("org.jetbrains.exposed", "exposed-dao", "0.18.1")
-    compile("org.jetbrains.exposed", "exposed-jdbc", "0.18.1")
+    compile "org.jetbrains.exposed:exposed-core:0.18.1"
+    compile "org.jetbrains.exposed:exposed-dao:0.18.1"
+    compile "org.jetbrains.exposed:exposed-jdbc:0.18.1"
 
     testCompile "io.ktor:ktor-server-tests:$ktor_version"
 }
