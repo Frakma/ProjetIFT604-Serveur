@@ -47,37 +47,12 @@ interface ServeurFB {
     ): Call<ResponseBody>
 
 
-    var access_token_: String
-    fun appsecret_proof(access_token: String): String {
-        return generateHashWithHmac256(
-            access_token,
-            app_secret
-        )
-    }
-
-    /**
-     * Returns access_token_
-     * if this one equals "" then a new access_token is asked (async) and "" is returned
-     */
-    fun access_token(): String {
-        System.out.println("token asked [${access_token_}]")
-        if (!access_token_.equals("")) {
-            return access_token_
-        }
-        ServeurFBProxy.getAccess_token()
-        return access_token_
-    }
-
-    fun resetAccess_token() {
-        this.access_token_ = ""
-    }
-
     companion object {
         val app_id = "454036578587951"
         val app_secret = "7b2be4392bf16a72e6ab1826b90ae438"
 
 
-        private fun generateHashWithHmac256(message: String, key: String): String {
+        fun generateHashWithHmac256(message: String, key: String): String {
             val hashingAlgorithm = "HmacSHA256" //or "HmacSHA1", "HmacSHA512"
             val bytes = hmac(
                 hashingAlgorithm,

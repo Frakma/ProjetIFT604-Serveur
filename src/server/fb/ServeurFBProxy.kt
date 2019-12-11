@@ -28,8 +28,8 @@ class ServeurFBProxy {
                     val body = response!!.body()!!.string()
                     val json = JSONObject(body)
                     if (json.has("access_token")) {
-                        System.out.println("new access_token")
-                        serveurFB.access_token_ = json.getString("access_token")
+                        access_token_ = json.getString("access_token")
+                        System.out.println("new access_token: ${access_token_}")
                     }
                 }
             })
@@ -43,9 +43,34 @@ class ServeurFBProxy {
             fields: String,
             limit: String
         ): Call<ResponseBody> {
-            val access_token = serveurFB.access_token()
-            val appsecret_proof = serveurFB.appsecret_proof(access_token)
+            val access_token = access_token()
+            val appsecret_proof = appsecret_proof(access_token)
             return serveurFB.searchForPlaces_(center, distance, q, fields, limit, access_token, appsecret_proof)
+        }
+
+        var access_token_: String = ""
+        fun appsecret_proof(access_token: String): String {
+            return ServeurFB.generateHashWithHmac256(
+                access_token,
+                ServeurFB.app_secret
+            )
+        }
+
+        /**
+         * Returns access_token_
+         * if this one equals "" then a new access_token is asked (async) and "" is returned
+         */
+        fun access_token(): String {
+            System.out.println("token asked [${access_token_}]")
+            if (!access_token_.equals("")) {
+                return access_token_
+            }
+            ServeurFBProxy.getAccess_token()
+            return access_token_
+        }
+
+        fun resetAccess_token() {
+            this.access_token_ = ""
         }
     }
 }
