@@ -25,7 +25,9 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.sessions.*
 import io.ktor.util.hex
+import okhttp3.MediaType
 import okhttp3.ResponseBody
+import org.json.JSONObject
 import projetift604.server.Repository
 import projetift604.server.UserRepository
 import projetift604.server.fb.ServeurFBProxy
@@ -48,6 +50,9 @@ class ServeurREST {
             exception<HttpRedirectException> { e ->
                 call.respondRedirect(e.location, permanent = e.permanent)
             }
+            exception<ServeurFBProxy.Companion.FBUnauthorizedRequestException> { e ->
+                call.respond(Response(status = "Unauthorized"))
+            }
             exception<ServeurFBProxy.Companion.EmptyAccessTokenException> { e ->
                 val LOCK = Object()
                 synchronized(LOCK) {
@@ -60,7 +65,7 @@ class ServeurREST {
             exception<Throwable> { e ->
                 call.respondText(e.localizedMessage, ContentType.Text.Plain, HttpStatusCode.InternalServerError)
             }
-            statusFile(HttpStatusCode.NotFound, HttpStatusCode.Unauthorized, filePattern = "error.#.html")
+            //statusFile(HttpStatusCode.NotFound, HttpStatusCode.Unauthorized, filePattern = "error.#.html")
         }
         ///*
         install(ContentNegotiation) {
@@ -122,7 +127,7 @@ class ServeurREST {
                 call.sessions.set(LoginSession(user.id))
                 call.respond(Response(status = "OK", data = user.id))
             }
-            get("/user/{userId?}") {
+            get("/{userId?}") {
                 val params = call.parameters
                 val userId = params.get("userId") ?: call.sessions.get<LoginSession>()!!.id ?: ""
                 val user = findUser(userId)
@@ -163,33 +168,6 @@ class ServeurREST {
         return repository.get(userId)
     }
 
-    /**
-     * Call ServerFB#searchForPlaces
-     * Not async --> execute()
-     */
-    private fun searchPlaces(
-        center: String,
-        distance: String,
-        q: String,
-        fields: String,
-        limit: String
-    ): ResponseBody? {
-        val callPlaces = ServeurFBProxy.searchForPlaces(
-            center = center,
-            distance = distance,
-            q = q,
-            fields = fields,
-            limit = limit
-        )
-
-        //val callPlaces = serverFB.getAccess_token()
-        val resp = callPlaces.execute()
-        val code = resp.code()
-        val body = resp.body()
-        System.out.println(resp)
-        return body
-    }
-
     fun initUser(userId: String): User {
         return repository.get(userId) ?: repository.add(User(userId))
     }
@@ -206,19 +184,53 @@ class ServeurREST {
     fun redirect(location: String, permanent: Boolean = false): Nothing =
         throw HttpRedirectException(location, permanent)
 
-    fun search(data: ResponseBody?, resumeAt: Int = 0): ResponseBody? {
-        return when (resumeAt) {
+    fun search(data: JSONObject?, resumeAt: Int = 0): JSONObject? {
+        when (resumeAt) {
             0 -> {
-                val places = searchPlaces(
+                return search(data, 1)
+            }
+            1 -> {
+                val places = ServeurFBProxy.searchForPlaces(
                     center = "45.3865903,-71.9261441",
                     distance = "3000",
                     q = "bar",
-                    fields = "id,name,page",
+                    fields = "id,name",
                     limit = "10"
                 )
-                return search(places, 1)
+                val code = places.code()
+                var body = places.body()
+                when (code) {
+                    190 -> ServeurFBProxy.resetAccess_token()
+                    200 -> System.out.println(places)
+                    400 -> body = ResponseBody.create(
+                        MediaType.parse("application/json"),
+                        "{}"
+                    )//ServeurFBProxy.FBunauthorizedRequest()
+                }
+                val json = JSONObject(body)
+                return search(json, 2)
             }
-            1 -> {
+            2 -> {
+                if (data!!.has("data")) {
+                    val items = data.getJSONArray("data")
+                    for (i in 0 until items.length()) {
+                        {
+                            var place = items.getJSONObject(i)
+                            val name = place.getString("name")
+                            val id = place.getString("id")
+                            val fieldsWanted = ""
+
+                            val place_info = ServeurFBProxy.searchForPlaceInfo(
+                                placeId = id,
+                                fields = fieldsWanted
+                            )
+                            var body = place_info.body()
+                            val json = JSONObject(body)
+                            //TODO
+                            search(json, 3)
+                        }
+                    }
+                }
                 return data
             }
             else -> {

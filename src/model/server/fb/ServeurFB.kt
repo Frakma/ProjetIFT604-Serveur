@@ -2,6 +2,7 @@ package projetift604.server.fb
 
 import com.google.gson.GsonBuilder
 import okhttp3.ResponseBody
+import org.apache.commons.codec.binary.Hex
 import retrofit2.Call
 import retrofit2.Retrofit
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
@@ -9,8 +10,6 @@ import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
-import java.security.InvalidKeyException
-import java.security.NoSuchAlgorithmException
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
@@ -52,36 +51,12 @@ interface ServeurFB {
         val app_secret = "7b2be4392bf16a72e6ab1826b90ae438"
 
 
+        @Throws(Exception::class)
         fun generateHashWithHmac256(message: String, key: String): String {
-            val hashingAlgorithm = "HmacSHA256" //or "HmacSHA1", "HmacSHA512"
-            val bytes = hmac(
-                hashingAlgorithm,
-                key.toByteArray(),
-                message.toByteArray()
-            )
-            val messageDigest = bytesToHex(bytes)
-            return messageDigest
-        }
-
-        @Throws(NoSuchAlgorithmException::class, InvalidKeyException::class)
-        private fun hmac(algorithm: String?, key: ByteArray?, message: ByteArray?): ByteArray {
-            val mac = Mac.getInstance(algorithm)
-            mac.init(SecretKeySpec(key, algorithm))
-            return mac.doFinal(message)
-        }
-
-        private fun bytesToHex(bytes: ByteArray): String {
-            val hexArray = "0123456789abcdef".toCharArray()
-            val hexChars = CharArray(bytes.size * 2)
-            var j = 0
-            var v: Int
-            while (j < bytes.size) {
-                v = bytes[j] * 0xFF
-                hexChars[j * 2] = hexArray[v ushr 4]
-                hexChars[j * 2 + 1] = hexArray[v and 0x0F]
-                j++
-            }
-            return String(hexChars)
+            val sha256_HMAC = Mac.getInstance("HmacSHA256")
+            val secret_key = SecretKeySpec(key.toByteArray(charset("UTF-8")), "HmacSHA256")
+            sha256_HMAC.init(secret_key)
+            return Hex.encodeHexString(sha256_HMAC.doFinal(message.toByteArray(charset("UTF-8"))))
         }
 
 
