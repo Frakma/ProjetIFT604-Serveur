@@ -2,11 +2,12 @@ package projetift604.server.fb
 
 import okhttp3.ResponseBody
 import org.json.JSONObject
+import projetift604.user.SearchCall
+import projetift604.user.User
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
-enum class FBRequest { AT }
 
 class ServeurFBProxy {
     companion object {
@@ -17,13 +18,13 @@ class ServeurFBProxy {
          * Returns access_token_
          * if this one equals "" then a new access_token is asked (async) and "" is returned
          */
-        fun access_token(resumeAt: Int = 0): String {
+        fun access_token(resumeAt: Int = 0, data: String = "", u: User, s: SearchCall): String {
             System.out.println("token asked [${access_token_}]")
             if (!access_token_.equals("")) {
                 return access_token_
             }
             ServeurFBProxy.getAccess_token()
-            restart(2000, resumeAt)
+            restart(2000, resumeAt, data, u, s)
             return ""
         }
 
@@ -62,9 +63,11 @@ class ServeurFBProxy {
             distance: String,
             q: String,
             fields: String,
-            limit: String
+            limit: String,
+            u: User,
+            s: SearchCall
         ): Response<ResponseBody> {
-            val access_token = access_token(1)
+            val access_token = access_token(1, "", u, s)
             val appsecret_proof = appsecret_proof(access_token)
             val call = serveurFB.searchForPlaces_(center, distance, q, fields, limit, access_token, appsecret_proof)
             val resp = call.execute()
@@ -73,9 +76,12 @@ class ServeurFBProxy {
 
         fun searchForPlaceInfo(
             placeId: String,
-            fields: String
+            fields: String,
+            d: JSONObject,
+            u: User,
+            s: SearchCall
         ): Response<ResponseBody> {
-            val access_token = access_token(2)
+            val access_token = access_token(2, d.toString(), u, s)
             val appsecret_proof = appsecret_proof(access_token)
             val call = serveurFB.searchForPlaceInfo_(fields, placeId, access_token, appsecret_proof)
             val resp = call.execute()
@@ -94,16 +100,25 @@ class ServeurFBProxy {
             )
         }
 
-        fun resetAccess_token(resumeAt: Int = 0) {
+        fun resetAccess_token(resumeAt: Int = 0, u: User, s: SearchCall) {
             this.access_token_ = ""
-            this.access_token(resumeAt)
+            this.access_token(resumeAt, "", u, s)
         }
 
-        fun restart(retry_in: Long, resumeAt: Int = 0, data: String = "{}"): Nothing =
-            throw EmptyAccessTokenException(retry_in, resumeAt, JSONObject(data))
+        abstract class ServeurFBProxyException(val msg: String, val userId: String, val searchCall: SearchCall) :
+            Exception()
 
-        class EmptyAccessTokenException(val retry_in: Long, val resumeAt: Int, val data: JSONObject? = null) :
-            Exception("empty access_token")
+        fun restart(retry_in: Long, resumeAt: Int = 0, data: String = "{}", u: User, s: SearchCall): Nothing =
+            throw EmptyAccessTokenException(retry_in, resumeAt, JSONObject(data), u, s)
+
+        class EmptyAccessTokenException(
+            val retry_in: Long,
+            val resumeAt: Int,
+            val data: JSONObject? = null,
+            u: User,
+            s: SearchCall
+        ) :
+            ServeurFBProxyException("empty access_token", u.id, s)
 
         fun FBunauthorizedRequest(): Nothing = throw FBUnauthorizedRequestException()
         class FBUnauthorizedRequestException :

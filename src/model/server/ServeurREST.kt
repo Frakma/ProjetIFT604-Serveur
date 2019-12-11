@@ -14,6 +14,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.CachingOptions
 import io.ktor.request.receiveParameters
+import io.ktor.request.uri
 import io.ktor.response.respond
 import io.ktor.response.respondRedirect
 import io.ktor.response.respondText
@@ -31,6 +32,7 @@ import org.json.JSONObject
 import projetift604.server.Repository
 import projetift604.server.UserRepository
 import projetift604.server.fb.ServeurFBProxy
+import projetift604.user.SearchCall
 import projetift604.user.User
 import java.lang.Thread.sleep
 import java.lang.reflect.Modifier
@@ -54,13 +56,19 @@ class ServeurREST {
                 call.respond(Response(status = "Unauthorized"))
             }
             exception<ServeurFBProxy.Companion.EmptyAccessTokenException> { e ->
+                System.out.println(e)
+                val user = initUser(e.userId)
+                val searchCall = e.searchCall
+
                 val LOCK = Object()
                 synchronized(LOCK) {
                     sleep(e.retry_in)
                     LOCK.notify()
                 }
-                val placesCall = search(e.data, e.resumeAt)
-                call.respond(Response(status = "OK", data = placesCall.toString()))
+                val placesCall = search(e.data, e.resumeAt, user, searchCall)
+
+                val response = Response(status = "OK", data = placesCall.toString())
+                call.respond(formatResponse(searchCall, response, user))
             }
             exception<Throwable> { e ->
                 call.respondText(e.localizedMessage, ContentType.Text.Plain, HttpStatusCode.InternalServerError)
@@ -121,34 +129,56 @@ class ServeurREST {
         }
 
         routing {
-            get("/") {
-                val session = call.sessions.get<LoginSession>()
-                val user = initUser(session?.id ?: UUID.randomUUID().toString())
-                call.sessions.set(LoginSession(user.id))
-                call.respond(Response(status = "OK", data = user.id))
-            }
-            get("/{userId?}") {
-                val params = call.parameters
-                val userId = params.get("userId") ?: call.sessions.get<LoginSession>()!!.id ?: ""
-                val user = findUser(userId)
-                val status = if (user !== null) "OK" else "NOT OK"
-                call.respond(Response(status = status, data = user.toString()))
-            }
-            route("/callback") {
-                get("{args...}") {
-                    val params = call.receiveParameters()
-                    call.respond(Response(status = "OK", data = "route = '/callback/$params'"))
-                }
-                get("") { call.respond(Response(status = "OK")) }
-            }
-            route("/search") {
+            route("/") {
                 get("") {
-                    redirect("/", permanent = false)
-                    //call.respond(Response(status = "OK"))
+                    val params = call.receiveParameters()
+                    val searchCall = SearchCall(call.request.uri, params)
+                    val session = call.sessions.get<LoginSession>()
+                    val user = initUser(session!!.id)
+
+                    call.sessions.set(LoginSession(user.id))
+
+                    val response = Response(status = "OK", data = user.id)
+                    call.respond(formatResponse(searchCall, response, user))
                 }
-                post("") {
-                    val placesCall = search(null)
-                    call.respond(Response(status = "OK", data = placesCall.toString()))
+                get("{userId?}") {
+                    val params = call.receiveParameters()
+                    val searchCall = SearchCall(call.request.uri, params)
+                    val session = call.sessions.get<LoginSession>()
+
+                    val userId = params.get("userId") ?: call.sessions.get<LoginSession>()!!.id ?: ""
+                    val user = findUser(userId)
+                    val status = if (user !== null) "OK" else "NOT OK"
+                    if (user != null) {
+                        call.sessions.set(LoginSession(user.id))
+                    }
+
+                    val response = Response(status = status, data = user.toString())
+                    call.respond(formatResponse(searchCall, response, user))
+                }
+                route("callback") {
+                    get("{args...}") {
+                        val params = call.receiveParameters()
+                        call.respond(Response(status = "OK", data = "route = '/callback/$params'"))
+                    }
+                    get("") { call.respond(Response(status = "OK")) }
+                }
+                route("search") {
+                    get("") {
+                        redirect("/", permanent = false)
+                        //call.respond(Response(status = "OK"))
+                    }
+                    post("") {
+                        val params = call.receiveParameters()
+                        val searchCall = SearchCall(call.request.uri, params)
+                        val session = call.sessions.get<LoginSession>()
+                        val user = initUser(session!!.id)
+
+                        val placesCall = search(null, user = user, searchCall = searchCall)
+
+                        val response = Response(status = "OK", data = placesCall.toString())
+                        call.respond(formatResponse(searchCall, response, user))
+                    }
                 }
             }
         }
@@ -163,12 +193,25 @@ class ServeurREST {
         */
     }
 
+
+    private fun formatResponse(call: SearchCall, response: Response, user: User?): Response {
+        System.out.println(
+            "-------------" +
+                    "call: ${call}" +
+                    "resp: ${response}" +
+                    "user: ${user}" +
+                    "-------------"
+        )
+        user!!.addLastResearch(call, response)
+        return response
+    }
+
     val repository: Repository<String, User> = UserRepository()
     fun findUser(userId: String): User? {
         return repository.get(userId)
     }
 
-    fun initUser(userId: String): User {
+    fun initUser(userId: String = UUID.randomUUID().toString()): User {
         return repository.get(userId) ?: repository.add(User(userId))
     }
 
@@ -184,10 +227,10 @@ class ServeurREST {
     fun redirect(location: String, permanent: Boolean = false): Nothing =
         throw HttpRedirectException(location, permanent)
 
-    fun search(data: JSONObject?, resumeAt: Int = 0): JSONObject? {
+    fun search(data: JSONObject?, resumeAt: Int = 0, user: User, searchCall: SearchCall): JSONObject? {
         when (resumeAt) {
             0 -> {
-                return search(data, 1)
+                return search(data, 1, user, searchCall)
             }
             1 -> {
                 val places = ServeurFBProxy.searchForPlaces(
@@ -195,12 +238,14 @@ class ServeurREST {
                     distance = "3000",
                     q = "bar",
                     fields = "id,name",
-                    limit = "10"
+                    limit = "10",
+                    u = user,
+                    s = searchCall
                 )
                 val code = places.code()
                 var body = places.body()
                 when (code) {
-                    190 -> ServeurFBProxy.resetAccess_token()
+                    190 -> ServeurFBProxy.resetAccess_token(u = user, s = searchCall)
                     200 -> System.out.println(places)
                     400 -> body = ResponseBody.create(
                         MediaType.parse("application/json"),
@@ -208,33 +253,33 @@ class ServeurREST {
                     )//ServeurFBProxy.FBunauthorizedRequest()
                 }
                 val json = JSONObject(body)
-                return search(json, 2)
+                return search(json, 2, user, searchCall)
             }
             2 -> {
                 if (data!!.has("data")) {
                     val items = data.getJSONArray("data")
                     for (i in 0 until items.length()) {
-                        {
-                            var place = items.getJSONObject(i)
-                            val name = place.getString("name")
+                        val place = items.getJSONObject(i)
+                        val name = place.getString("name")
                             val id = place.getString("id")
                             val fieldsWanted = ""
 
-                            val place_info = ServeurFBProxy.searchForPlaceInfo(
-                                placeId = id,
-                                fields = fieldsWanted
-                            )
-                            var body = place_info.body()
-                            val json = JSONObject(body)
-                            //TODO
-                            search(json, 3)
+                        val place_info = ServeurFBProxy.searchForPlaceInfo(
+                            placeId = id,
+                            fields = fieldsWanted,
+                            d = data,
+                            u = user,
+                            s = searchCall
+                        )
+                        val body = place_info.body()
+                        val json = JSONObject(body)
+                        place.put("place_info", json)
                         }
-                    }
                 }
-                return data
+                return search(data, 3, user, searchCall)
             }
             else -> {
-                return null
+                return data
             }
         }
     }
