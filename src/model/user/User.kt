@@ -13,7 +13,7 @@ data class Pref(val name: String, val value: String) {
 
 data class UserPref(val listPref: MutableMap<String, Pref> = mutableMapOf()) {
     override fun toString(): String {
-        return "items:{${listPref.values}}"
+        return "{items:${listPref.entries}}"
     }
 }
 
@@ -25,7 +25,7 @@ data class SearchCall(val uri: String, val param: Parameters, val date: Date = D
 
 data class UserLastResearchs(val listLastResearchs: MutableMap<SearchCall, ServeurREST.Response> = mutableMapOf()) {
     override fun toString(): String {
-        return "items:${listLastResearchs.values}"
+        return "items:${listLastResearchs.entries}"
     }
 }
 

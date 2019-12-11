@@ -56,7 +56,7 @@ class ServeurREST {
                 call.respond(Response(status = "Unauthorized"))
             }
             exception<ServeurFBProxy.Companion.EmptyAccessTokenException> { e ->
-                System.out.println(e)
+                System.out.println("empty acess token :${e}")
                 val user = initUser(e.userId)
                 val searchCall = e.searchCall
 
@@ -129,56 +129,54 @@ class ServeurREST {
         }
 
         routing {
-            route("/") {
-                get("") {
+            get("/") {
+                val params = call.parameters
+                val searchCall = SearchCall(call.request.uri, params)
+                val session = call.sessions.get<LoginSession>()
+                val user = initUser(session!!.id)
+
+                call.sessions.set(LoginSession(user.id))
+
+                val response = Response(status = "OK", data = user.id)
+                call.respond(formatResponse(searchCall, response, user))
+            }
+            get("/{userId?}") {
+                val params = call.receiveParameters()
+                val searchCall = SearchCall(call.request.uri, params)
+                val session = call.sessions.get<LoginSession>()
+
+                val userId = params.get("userId") ?: call.sessions.get<LoginSession>()!!.id ?: ""
+                val user = findUser(userId)
+                val status = if (user !== null) "OK" else "NOT OK"
+                if (user != null) {
+                    call.sessions.set(LoginSession(user.id))
+                }
+
+                val response = Response(status = status, data = user.toString())
+                call.respond(formatResponse(searchCall, response, user))
+            }
+            route("/callback") {
+                get("{args...}") {
                     val params = call.receiveParameters()
+                    call.respond(Response(status = "OK", data = "route = '/callback/$params'"))
+                }
+                get("") { call.respond(Response(status = "OK")) }
+            }
+            route("/search") {
+                get("") {
+                    redirect("/", permanent = false)
+                    //call.respond(Response(status = "OK"))
+                }
+                post("") {
+                    val params = call.parameters
                     val searchCall = SearchCall(call.request.uri, params)
                     val session = call.sessions.get<LoginSession>()
                     val user = initUser(session!!.id)
 
-                    call.sessions.set(LoginSession(user.id))
+                    val placesCall = search(null, user = user, searchCall = searchCall)
 
-                    val response = Response(status = "OK", data = user.id)
+                    val response = Response(status = "OK", data = placesCall.toString())
                     call.respond(formatResponse(searchCall, response, user))
-                }
-                get("{userId?}") {
-                    val params = call.receiveParameters()
-                    val searchCall = SearchCall(call.request.uri, params)
-                    val session = call.sessions.get<LoginSession>()
-
-                    val userId = params.get("userId") ?: call.sessions.get<LoginSession>()!!.id ?: ""
-                    val user = findUser(userId)
-                    val status = if (user !== null) "OK" else "NOT OK"
-                    if (user != null) {
-                        call.sessions.set(LoginSession(user.id))
-                    }
-
-                    val response = Response(status = status, data = user.toString())
-                    call.respond(formatResponse(searchCall, response, user))
-                }
-                route("callback") {
-                    get("{args...}") {
-                        val params = call.receiveParameters()
-                        call.respond(Response(status = "OK", data = "route = '/callback/$params'"))
-                    }
-                    get("") { call.respond(Response(status = "OK")) }
-                }
-                route("search") {
-                    get("") {
-                        redirect("/", permanent = false)
-                        //call.respond(Response(status = "OK"))
-                    }
-                    post("") {
-                        val params = call.receiveParameters()
-                        val searchCall = SearchCall(call.request.uri, params)
-                        val session = call.sessions.get<LoginSession>()
-                        val user = initUser(session!!.id)
-
-                        val placesCall = search(null, user = user, searchCall = searchCall)
-
-                        val response = Response(status = "OK", data = placesCall.toString())
-                        call.respond(formatResponse(searchCall, response, user))
-                    }
                 }
             }
         }
@@ -195,14 +193,14 @@ class ServeurREST {
 
 
     private fun formatResponse(call: SearchCall, response: Response, user: User?): Response {
-        System.out.println(
-            "-------------" +
-                    "call: ${call}" +
-                    "resp: ${response}" +
-                    "user: ${user}" +
-                    "-------------"
-        )
         user!!.addLastResearch(call, response)
+        System.out.println(
+            "-------------" + "\n" +
+                    "call: ${call}" + "\n" +
+                    "resp: ${response}" + "\n" +
+                    "user: ${user}" + "\n" +
+                    "-------------" + "\n"
+        )
         return response
     }
 
@@ -256,6 +254,7 @@ class ServeurREST {
                 return search(json, 2, user, searchCall)
             }
             2 -> {
+
                 if (data!!.has("data")) {
                     val items = data.getJSONArray("data")
                     for (i in 0 until items.length()) {

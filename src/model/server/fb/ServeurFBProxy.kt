@@ -18,7 +18,7 @@ class ServeurFBProxy {
          * Returns access_token_
          * if this one equals "" then a new access_token is asked (async) and "" is returned
          */
-        fun access_token(resumeAt: Int = 0, data: String = "", u: User, s: SearchCall): String {
+        fun access_token(resumeAt: Int = 0, data: String = "{}", u: User, s: SearchCall): String {
             System.out.println("token asked [${access_token_}]")
             if (!access_token_.equals("")) {
                 return access_token_
@@ -45,7 +45,7 @@ class ServeurFBProxy {
                 ) {
                     val body = response!!.body()!!.string()
                     val json = JSONObject(body)
-                    System.out.println("access_token responseBody: ${json}")
+                    //System.out.println("access_token responseBody: ${json}")
                     if (json.has("access_token")) {
                         access_token_ = json.getString("access_token")
                         System.out.println("new access_token: ${access_token_}")
@@ -67,7 +67,7 @@ class ServeurFBProxy {
             u: User,
             s: SearchCall
         ): Response<ResponseBody> {
-            val access_token = access_token(1, "", u, s)
+            val access_token = access_token(1, "{}", u, s)
             val appsecret_proof = appsecret_proof(access_token)
             val call = serveurFB.searchForPlaces_(center, distance, q, fields, limit, access_token, appsecret_proof)
             val resp = call.execute()
@@ -102,11 +102,11 @@ class ServeurFBProxy {
 
         fun resetAccess_token(resumeAt: Int = 0, u: User, s: SearchCall) {
             this.access_token_ = ""
-            this.access_token(resumeAt, "", u, s)
+            this.access_token(resumeAt, "{}", u, s)
         }
 
         abstract class ServeurFBProxyException(val msg: String, val userId: String, val searchCall: SearchCall) :
-            Exception()
+            Exception(msg)
 
         fun restart(retry_in: Long, resumeAt: Int = 0, data: String = "{}", u: User, s: SearchCall): Nothing =
             throw EmptyAccessTokenException(retry_in, resumeAt, JSONObject(data), u, s)
@@ -114,7 +114,7 @@ class ServeurFBProxy {
         class EmptyAccessTokenException(
             val retry_in: Long,
             val resumeAt: Int,
-            val data: JSONObject? = null,
+            val data: JSONObject = JSONObject("{}"),
             u: User,
             s: SearchCall
         ) :
