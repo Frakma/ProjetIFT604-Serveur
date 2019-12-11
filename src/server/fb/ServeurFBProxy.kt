@@ -66,11 +66,16 @@ class ServeurFBProxy {
                 return access_token_
             }
             ServeurFBProxy.getAccess_token()
-            return access_token_
+            restart(500)
+            return ""
         }
 
         fun resetAccess_token() {
             this.access_token_ = ""
         }
+
+        fun restart(retry_in: Long, resumeAt: Int = 0): Nothing = throw EmptyAccessTokenException(retry_in, resumeAt)
+        class EmptyAccessTokenException(val retry_in: Long, val resumeAt: Int, val data: ResponseBody? = null) :
+            Exception("empty access_token")
     }
 }

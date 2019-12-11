@@ -30,6 +30,7 @@ import projetift604.server.Repository
 import projetift604.server.UserRepository
 import projetift604.server.fb.ServeurFBProxy
 import projetift604.user.User
+import java.lang.Thread.sleep
 import java.lang.reflect.Modifier
 import java.text.DateFormat
 import java.util.*
@@ -46,6 +47,15 @@ class ServeurREST {
         install(StatusPages) {
             exception<HttpRedirectException> { e ->
                 call.respondRedirect(e.location, permanent = e.permanent)
+            }
+            exception<ServeurFBProxy.Companion.EmptyAccessTokenException> { e ->
+                val LOCK = Object()
+                synchronized(LOCK) {
+                    sleep(e.retry_in)
+                    LOCK.notify()
+                }
+                val placesCall = search(e.data, e.resumeAt)
+                call.respond(Response(status = "OK", data = placesCall.toString()))
             }
             exception<Throwable> { e ->
                 call.respondText(e.localizedMessage, ContentType.Text.Plain, HttpStatusCode.InternalServerError)
@@ -132,13 +142,7 @@ class ServeurREST {
                     //call.respond(Response(status = "OK"))
                 }
                 post("") {
-                    val placesCall = searchPlaces(
-                        center = "45.3865903,-71.9261441",
-                        distance = "3000",
-                        q = "bar",
-                        fields = "id,name,page",
-                        limit = "10"
-                    )
+                    val placesCall = search(null)
                     call.respond(Response(status = "OK", data = placesCall.toString()))
                 }
             }
@@ -163,7 +167,13 @@ class ServeurREST {
      * Call ServerFB#searchForPlaces
      * Not async --> execute()
      */
-    fun searchPlaces(center: String, distance: String, q: String, fields: String, limit: String): ResponseBody? {
+    private fun searchPlaces(
+        center: String,
+        distance: String,
+        q: String,
+        fields: String,
+        limit: String
+    ): ResponseBody? {
         val callPlaces = ServeurFBProxy.searchForPlaces(
             center = center,
             distance = distance,
@@ -195,6 +205,27 @@ class ServeurREST {
 
     fun redirect(location: String, permanent: Boolean = false): Nothing =
         throw HttpRedirectException(location, permanent)
+
+    fun search(data: ResponseBody?, resumeAt: Int = 0): ResponseBody? {
+        return when (resumeAt) {
+            0 -> {
+                val places = searchPlaces(
+                    center = "45.3865903,-71.9261441",
+                    distance = "3000",
+                    q = "bar",
+                    fields = "id,name,page",
+                    limit = "10"
+                )
+                return search(places, 1)
+            }
+            1 -> {
+                return data
+            }
+            else -> {
+                return null
+            }
+        }
+    }
 
 
     fun start() {
