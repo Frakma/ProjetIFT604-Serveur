@@ -27,8 +27,8 @@ import io.ktor.sessions.*
 import io.ktor.util.hex
 import okhttp3.ResponseBody
 import projetift604.server.Repository
-import projetift604.server.ServeurFB
 import projetift604.server.UserRepository
+import projetift604.server.fb.ServeurFBProxy
 import projetift604.user.User
 import java.lang.reflect.Modifier
 import java.text.DateFormat
@@ -159,17 +159,12 @@ class ServeurREST {
         return repository.get(userId)
     }
 
-    val serverFB by lazy {
-        ServeurFB.create()
-    }
-
     /**
      * Call ServerFB#searchForPlaces
      * Not async --> execute()
      */
     fun searchPlaces(center: String, distance: String, q: String, fields: String, limit: String): ResponseBody? {
-
-        val callPlaces = serverFB.searchForPlaces(
+        val callPlaces = ServeurFBProxy.searchForPlaces(
             center = center,
             distance = distance,
             q = q,
