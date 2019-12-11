@@ -26,9 +26,14 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.sessions.*
 import io.ktor.util.hex
+import org.json.JSONArray
 import org.json.JSONObject
-import projetift604.server.Repository
+import projetift604.model.place.Location
+import projetift604.model.place.Place
+import projetift604.model.place.Place_Info
+import projetift604.model.place.Place_Page
 import projetift604.server.UserRepository
+import projetift604.server.fb.PlaceRepository
 import projetift604.server.fb.ServeurFBProxy
 import projetift604.user.SearchCall
 import projetift604.user.User
@@ -202,7 +207,7 @@ class ServeurREST {
         return response
     }
 
-    val repository: Repository<String, User> = UserRepository()
+    val repository = UserRepository()
     fun findUser(userId: String): User? {
         return repository.get(userId)
     }
@@ -223,6 +228,7 @@ class ServeurREST {
     fun redirect(location: String, permanent: Boolean = false): Nothing =
         throw HttpRedirectException(location, permanent)
 
+    val placeRepository = PlaceRepository()
     fun search(data: JSONObject?, resumeAt: Int? = -1, user: User, searchCall: SearchCall): JSONObject? {
         when (resumeAt) {
             0 -> {
@@ -248,6 +254,7 @@ class ServeurREST {
                         val place = items.getJSONObject(i)
                         val name = place.getString("name")
                         val id = place.getString("id")
+                        val structuredPlace = Place(id, name)
                         val fieldsWanted = "page,location"
 
                         val place_info = ServeurFBProxy.searchForPlaceInfo(
@@ -256,15 +263,46 @@ class ServeurREST {
                             d = data,
                             u = user,
                             s = searchCall
-                        )
+                        )!!
                         place.put("place_info", place_info)
+                        var location: JSONObject = JSONObject("{}")
+                        if (place_info.has("location")) {
+                            location = JSONObject(place_info.get("location"))
+                        }
+
+                        var page: JSONObject = JSONObject("{}")
+                        var pageId: String = ""
+                        if (place_info.has("page")) {
+                            page = JSONObject(place_info.get("page"))
+                            if (page.has("id")) {
+                                pageId = page.getString("id")
+                            }
+                        }
+
+                        structuredPlace.place_info = Place_Info(
+                            pageId = pageId,
+                            location = Location(
+                                latitude = if (location.has("latitude")) location.getString("latitude") else null,
+                                longitude = if (location.has("longitude")) location.getString("longitude") else null,
+                                value = location
+                            ),
+                            page = Place_Page(
+                                dunno = page.toString()
+                            )
+                        )
+                        placeRepository.add(structuredPlace)
                     }
-                    val data_ = JSONObject(data).put("data", items)
+                    val data_ = JSONObject("{}").put("items", JSONArray(placeRepository.getAll()))
                     return search(data_, 3, user, searchCall)
                 }
                 return search(data, 3, user, searchCall)
             }
             else -> {
+                System.out.println(
+                    "-----------------------------" +
+                            "${data}" +
+                            "-----------------------------"
+                )
                 return data
             }
         }
