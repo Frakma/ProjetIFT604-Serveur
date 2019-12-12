@@ -11,7 +11,7 @@ data class Location(
     val latitude: String? = "0.0",
     val longitude: String? = "0.0",
     val value: JSONObject? = JSONObject("{}"),
-    val asOneString: String? = latitude + longitude
+    val asOneString: String? = "$latitude,$longitude"
 )
 
 data class Place_Info(
