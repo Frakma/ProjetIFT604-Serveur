@@ -2,11 +2,11 @@ package serveur
 
 
 import com.google.gson.FieldNamingPolicy
-import com.google.gson.GsonBuilder
+import com.google.gson.Gson
+import io.ktor.application.ApplicationCall
 import io.ktor.application.call
 import io.ktor.application.install
 import io.ktor.features.*
-import io.ktor.gson.GsonConverter
 import io.ktor.gson.gson
 import io.ktor.http.CacheControl
 import io.ktor.http.ContentType
@@ -24,8 +24,9 @@ import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.sessions.*
+import io.ktor.util.KtorExperimentalAPI
 import io.ktor.util.hex
-import io.ktor.util.toMap
+import kotlinx.coroutines.io.readFully
 import org.json.JSONObject
 import projetift604.model.server.searchEngine.SearchParams
 import projetift604.model.server.searchEngine.search
@@ -35,14 +36,18 @@ import projetift604.user.SearchCall
 import projetift604.user.User
 import java.lang.Thread.sleep
 import java.lang.reflect.Modifier
+import java.nio.charset.Charset
 import java.text.DateFormat
 import java.util.*
 import kotlin.collections.set
 
 
 class ServeurREST {
+    @KtorExperimentalAPI
     val server = embeddedServer(Netty, port = 8080) {
         install(DefaultHeaders)
+        install(ConditionalHeaders)
+        install(DoubleReceive)
         install(CORS) {
             anyHost()
             allowCredentials = true
@@ -99,7 +104,6 @@ class ServeurREST {
                 setLenient()
                 setVersion(0.0)
                 excludeFieldsWithModifiers(Modifier.TRANSIENT)
-                register(ContentType.Application.Json, GsonConverter(GsonBuilder().create()))
             }
         }
         //
@@ -169,8 +173,8 @@ class ServeurREST {
                     //call.respond(Response(status = "OK"))
                 }
                 post("") {
-                    val callParameters = call.receiveParameters()
-                    val params = callParameters.toMap()
+                    val callParameters = "{}"//call.receiveParameters()
+                    val params = JSONObject(callParameters).toMap()
                     System.out.println(params)
                     val searchCall = SearchCall(call.request.uri, JSONObject(params))
                     System.out.println(searchCall)
@@ -235,6 +239,22 @@ class ServeurREST {
 
     fun start() {
         server.start(wait = true)
+    }
+
+    internal suspend fun receiveParams(call: ApplicationCall): JSONObject {
+        val channel = call.request.receiveChannel()
+        val ba = ByteArray(channel.availableForRead)
+        channel.readFully(ba)
+        val s = ba.toString(Charset.defaultCharset())
+
+        println(s) // prints JSON
+
+        val gson = Gson()
+        val po = gson.fromJson(s, String::class.java)
+
+        val p = JSONObject(po)
+        println(p)
+        return p
     }
 }
 

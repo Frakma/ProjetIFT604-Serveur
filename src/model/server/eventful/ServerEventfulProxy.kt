@@ -5,8 +5,8 @@ import okhttp3.ResponseBody
 import org.json.JSONArray
 import org.json.JSONObject
 import projetift604.model.server.searchEngine.SearchParams
+import projetift604.model.server.searchEngine.ValidDate
 import projetift604.server.eventful.ServeurEventful
-import projetift604.server.eventful.ValidDate
 import projetift604.user.SearchCall
 import projetift604.user.User
 import retrofit2.Response
@@ -17,6 +17,7 @@ class ServerEventfulProxy {
         private val serveurEventful = ServeurEventful.create()
 
         fun searchForEvents(resumeAt: Int?, sp: SearchParams, u: User, s: SearchCall): JSONObject {
+            System.out.println("------------")
             val spDate: String = sp.data.date
             System.out.println(spDate)
             val date = ValidDate.validate(spDate)
@@ -26,11 +27,17 @@ class ServerEventfulProxy {
                 center = sp.data.center.toString(),
                 distance = sp.data.distance,
                 date = date,
-                limit = sp.limit.toString()
+                limit = sp.limit.toString(),
+                units = "km",
+                keyworkds = "",
+                count_only = "false",
+                sort_oder = "relevance"
             )
             System.out.println(call)
             val resp = call.execute()
             System.out.println(resp)
+            System.out.println("------------")
+            System.out.println("------------")
             return extractBody(resp, resumeAt, sp, u, s)
         }
 
