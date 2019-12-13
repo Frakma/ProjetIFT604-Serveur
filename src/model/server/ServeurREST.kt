@@ -2,7 +2,6 @@ package serveur
 
 
 import com.google.gson.FieldNamingPolicy
-import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import io.ktor.application.call
 import io.ktor.application.install
@@ -26,14 +25,11 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.sessions.*
 import io.ktor.util.hex
-import org.json.JSONArray
+import io.ktor.util.toMap
 import org.json.JSONObject
-import projetift604.model.place.Location
-import projetift604.model.place.Place
-import projetift604.model.place.Place_Info
-import projetift604.model.place.Place_Page
+import projetift604.model.server.searchEngine.SearchParams
+import projetift604.model.server.searchEngine.search
 import projetift604.server.UserRepository
-import projetift604.server.fb.PlaceRepository
 import projetift604.server.fb.ServeurFBProxy
 import projetift604.user.SearchCall
 import projetift604.user.User
@@ -60,25 +56,27 @@ class ServeurREST {
             }
             exception<ServeurFBProxy.Companion.EmptyAccessTokenException> { e ->
                 System.out.println("empty acess token :${e}")
-                val user = initUser(e.userId!!)
-                val searchCall = e.searchCall
+                val user: User = initUser(e.userId!!)
+                val searchCall: SearchCall? = e.searchCall
+                val sp: SearchParams = e.sp!!
 
                 val LOCK = Object()
                 synchronized(LOCK) {
                     sleep(e.retry_in)
                     LOCK.notify()
                 }
-                val placesCall = search(e.data, e.resumeAt, user, searchCall!!)
+                val placesCall = search(e.data!!, e.resumeAt!!, e.sp, user, searchCall!!)
 
                 val response = Response(status = "OK", data = placesCall.toString())
                 call.respond(formatResponse(searchCall, response, user))
             }
             exception<Throwable> { e ->
-                call.respondText(e.localizedMessage, ContentType.Text.Plain, HttpStatusCode.InternalServerError)
+                call.respondText(e.localizedMessage ?: "", ContentType.Text.Plain, HttpStatusCode.InternalServerError)
             }
             //statusFile(HttpStatusCode.NotFound, HttpStatusCode.Unauthorized, filePattern = "error.#.html")
         }
         ///*
+        install(Compression)
         install(ContentNegotiation) {
             /*serialization(
                 contentType = ContentType.Application.Json,
@@ -96,12 +94,12 @@ class ServeurREST {
                 serializeNulls()
                 serializeSpecialFloatingPointValues()
                 setDateFormat(DateFormat.DEFAULT)
-                setFieldNamingPolicy(FieldNamingPolicy.UPPER_CAMEL_CASE)
+                setFieldNamingPolicy(FieldNamingPolicy.IDENTITY)
                 generateNonExecutableJson()
                 setLenient()
                 setVersion(0.0)
                 excludeFieldsWithModifiers(Modifier.TRANSIENT)
-                register(ContentType.Application.Json, GsonConverter(GsonBuilder().apply {}.create()))
+                register(ContentType.Application.Json, GsonConverter(GsonBuilder().create()))
             }
         }
         //
@@ -133,22 +131,22 @@ class ServeurREST {
 
         routing {
             get("/") {
-                val params = call.parameters
+                val params = JSONObject()
                 val searchCall = SearchCall(call.request.uri, params)
                 val session = call.sessions.get<LoginSession>()
                 val user = initUser(session!!.id)
-
                 call.sessions.set(LoginSession(user.id))
 
                 val response = Response(status = "OK", data = user.id)
                 call.respond(formatResponse(searchCall, response, user))
             }
-            get("/{userId?}") {
-                val params = call.receiveParameters()
+            get("/{userId}") {
+                val p = call.parameters
+                System.out.println(p)
+                val params = JSONObject(p)
                 val searchCall = SearchCall(call.request.uri, params)
                 val session = call.sessions.get<LoginSession>()
-
-                val userId = params.get("userId") ?: call.sessions.get<LoginSession>()!!.id ?: ""
+                val userId = if (params.has("userId")) params.getString("userId") else session!!.id
                 val user = findUser(userId)
                 val status = if (user !== null) "OK" else "NOT OK"
                 if (user != null) {
@@ -171,13 +169,24 @@ class ServeurREST {
                     //call.respond(Response(status = "OK"))
                 }
                 post("") {
-                    val params = call.parameters
-                    val searchCall = SearchCall(call.request.uri, params)
+                    val callParameters = call.receiveParameters()
+                    val params = callParameters.toMap()
+
+                    val searchCall = SearchCall(call.request.uri, JSONObject(params))
+                    //System.out.println(searchCall)
                     val session = call.sessions.get<LoginSession>()
                     val user = initUser(session!!.id)
 
-                    val placesCall = search(null, resumeAt = 0, user = user, searchCall = searchCall)
-
+                    //val sp = SearchParams.extract(params)
+                    val sp = SearchParams()
+                    System.out.println(sp)
+                    val placesCall = search(
+                        JSONObject(sp.data),
+                        resumeAt = sp.startAtPhase,
+                        sp = sp,
+                        user = user,
+                        searchCall = searchCall
+                    )
                     val response = Response(status = "OK", data = placesCall.toString())
                     call.respond(formatResponse(searchCall, response, user))
                 }
@@ -216,10 +225,6 @@ class ServeurREST {
         return repository.get(userId) ?: repository.add(User(userId))
     }
 
-    fun resp(rep: Response): String {
-        return Gson().toJson(rep)
-    }
-
     data class Response(val status: String, val data: String = "")
     data class LoginSession(val id: String)
 
@@ -227,82 +232,6 @@ class ServeurREST {
 
     fun redirect(location: String, permanent: Boolean = false): Nothing =
         throw HttpRedirectException(location, permanent)
-
-    val placeRepository = PlaceRepository()
-    fun search(data: JSONObject?, resumeAt: Int? = -1, user: User, searchCall: SearchCall): JSONObject? {
-        when (resumeAt) {
-            0 -> {
-                return search(data, 1, user, searchCall)
-            }
-            1 -> {
-                val places = ServeurFBProxy.searchForPlaces(
-                    center = "45.3865903,-71.9261441",
-                    distance = "3000",
-                    q = "bar",
-                    fields = "id,name",
-                    limit = "10",
-                    u = user,
-                    s = searchCall
-                )
-                return search(places, 2, user, searchCall)
-            }
-            2 -> {
-                System.out.println(data)
-                if (data!!.has("data")) {
-                    val items = data.getJSONArray("data")
-                    for (i in 0 until items.length()) {
-                        val place = items.getJSONObject(i)
-                        val name = place.getString("name")
-                        val id = place.getString("id")
-                        val structuredPlace = Place(id, name)
-                        val fieldsWanted = "page,location"
-
-                        val place_info = ServeurFBProxy.searchForPlaceInfo(
-                            placeId = id,
-                            fields = fieldsWanted,
-                            d = data,
-                            u = user,
-                            s = searchCall
-                        )!!
-                        place.put("place_info", place_info)
-                        var location: JSONObject = JSONObject("{}")
-                        if (place_info.has("location")) {
-                            location = JSONObject(place_info.get("location"))
-                        }
-
-                        var page: JSONObject = JSONObject("{}")
-                        var pageId: String = ""
-                        if (place_info.has("page")) {
-                            page = JSONObject(place_info.get("page"))
-                            if (page.has("id")) {
-                                pageId = page.getString("id")
-                            }
-                        }
-
-                        structuredPlace.place_info = Place_Info(
-                            pageId = pageId,
-                            location = Location(
-                                latitude = if (location.has("latitude")) location.getString("latitude") else null,
-                                longitude = if (location.has("longitude")) location.getString("longitude") else null,
-                                value = location
-                            ),
-                            page = Place_Page(
-                                dunno = page.toString()
-                            )
-                        )
-                        placeRepository.add(structuredPlace)
-                    }
-                    val data_ = JSONObject("{}").put("items", JSONArray(placeRepository.getAll()))
-                    return search(data_, 3, user, searchCall)
-                }
-                return search(data, 3, user, searchCall)
-            }
-            else -> {
-                return data
-            }
-        }
-    }
-
 
     fun start() {
         server.start(wait = true)

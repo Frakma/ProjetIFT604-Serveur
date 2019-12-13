@@ -1,5 +1,6 @@
 package projetift604.server.fb
 
+import Config
 import com.google.gson.GsonBuilder
 import okhttp3.ResponseBody
 import retrofit2.Call
@@ -10,7 +11,6 @@ import retrofit2.http.GET
 import retrofit2.http.Headers
 import retrofit2.http.Path
 import retrofit2.http.Query
-
 
 interface ServeurFB {
     @Headers("Content-Type:application/json; charset=UTF-8")
@@ -45,8 +45,8 @@ interface ServeurFB {
 
 
     companion object {
-        val app_id = "454036578587951"
-        val app_secret = "7b2be4392bf16a72e6ab1826b90ae438"
+        val app_id = Config.get().FB.APP_ID
+        val app_secret = Config.get().FB.APP_SECRET
 
 
         fun create(): ServeurFB {
@@ -57,7 +57,7 @@ interface ServeurFB {
                 .addConverterFactory(
                     GsonConverterFactory.create(GsonBuilder().setLenient().create())
                 )
-                .baseUrl("https://graph.facebook.com/v5.0/")
+                .baseUrl("")
                 .build()
 
             return retrofit.create(ServeurFB::class.java)

@@ -5,3 +5,5 @@
 *.iml
 *.ipr
 *.iws
+
+src/config/auth_config.json
