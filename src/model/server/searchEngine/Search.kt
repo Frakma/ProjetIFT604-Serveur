@@ -96,7 +96,8 @@ fun search(data: JSONObject, resumeAt: Int = -1, sp: SearchParams, user: User, s
 data class SearchParamsData(
     val center: Location = Location(),
     val distance: String = "1000",
-    val date: String = "today"
+    val date: String = "today",
+    val keyworkds: String = ""
 )
 
 /**

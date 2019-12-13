@@ -171,9 +171,9 @@ class ServeurREST {
                 post("") {
                     val callParameters = call.receiveParameters()
                     val params = callParameters.toMap()
-
+                    System.out.println(params)
                     val searchCall = SearchCall(call.request.uri, JSONObject(params))
-                    //System.out.println(searchCall)
+                    System.out.println(searchCall)
                     val session = call.sessions.get<LoginSession>()
                     val user = initUser(session!!.id)
 
