@@ -16,20 +16,21 @@ interface ServeurEventful {
     @GET("/events/search")
     fun searchForEvents_(
         @Query("app_key") app_key: String,
-        @Query("location") center: String,
-        @Query("within") distance: String,
+        @Query("location") location: String,
+        @Query("within") within: String,
         @Query("date") date: String,
-        @Query("keywords") keyworkds: String,
+        @Query("keywords") keywords: String,
         @Query("units") units: String,
         @Query("count_only") count_only: String,
         @Query("sort_order") sort_oder: String,
-        @Query("page_size") limit: String
-        //@Query("change_multi_day_start") startAtDate: String = ""//TODO(a etudier),
+        @Query("page_size") page_size: String
     ): Call<ResponseBody>
 
 
     companion object {
         val app_key = Config.get().EVENTFUL.APP_KEY
+        val domain = Config.get().EVENTFUL.DOMAIN
+
         fun create(): ServeurEventful {
             val retrofit = Retrofit.Builder()
                 .addCallAdapterFactory(
@@ -38,9 +39,8 @@ interface ServeurEventful {
                 .addConverterFactory(
                     GsonConverterFactory.create(GsonBuilder().setLenient().create())
                 )
-                .baseUrl(Config.get().EVENTFUL.DOMAIN)
+                .baseUrl(domain)
                 .build()
-
             return retrofit.create(ServeurEventful::class.java)
         }
     }

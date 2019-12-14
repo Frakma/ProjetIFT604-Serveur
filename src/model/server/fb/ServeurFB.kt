@@ -47,6 +47,7 @@ interface ServeurFB {
     companion object {
         val app_id = Config.get().FB.APP_ID
         val app_secret = Config.get().FB.APP_SECRET
+        val domain = Config.get().FB.DOMAIN
 
 
         fun create(): ServeurFB {
@@ -57,7 +58,7 @@ interface ServeurFB {
                 .addConverterFactory(
                     GsonConverterFactory.create(GsonBuilder().setLenient().create())
                 )
-                .baseUrl("")
+                .baseUrl(domain)
                 .build()
 
             return retrofit.create(ServeurFB::class.java)

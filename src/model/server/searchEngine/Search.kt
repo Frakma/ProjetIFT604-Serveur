@@ -1,12 +1,10 @@
 package projetift604.model.server.searchEngine
 
-import org.json.JSONArray
 import org.json.JSONObject
 import projetift604.model.place.Location
 import projetift604.model.place.Place
 import projetift604.model.place.Place_Info
 import projetift604.model.place.Place_Page
-import projetift604.model.server.eventful.ServerEventfulProxy
 import projetift604.server.fb.PlaceRepository
 import projetift604.server.fb.ServeurFBProxy
 import projetift604.user.SearchCall
@@ -15,7 +13,7 @@ import java.text.SimpleDateFormat
 
 val placeRepository = PlaceRepository()
 fun search(data: JSONObject, resumeAt: Int = -1, sp: SearchParams, user: User, searchCall: SearchCall): JSONObject? {
-    System.out.println("[${resumeAt}]: ${data}")
+    System.out.println("[${resumeAt}]: ${data} | ${user} | ${sp} | ${searchCall}")
     if (sp.stopAtPhase != -1) {
         if (resumeAt > sp.stopAtPhase) {
             return data
@@ -23,16 +21,24 @@ fun search(data: JSONObject, resumeAt: Int = -1, sp: SearchParams, user: User, s
     }
     when (resumeAt) {
         0 -> {
-            return search(data, -1, sp, user, searchCall)
+            return search(data, 1, sp, user, searchCall)
         }
         1 -> {
-            val events = ServerEventfulProxy.searchForEvents(
-                1,
+            System.out.println(" -- >")
+            //val events = ServerEventfulProxy.searchForEvents(1,sp,user,searchCall)
+            val events = ServeurFBProxy.searchForPlaces(
+                "45.4037978,-71.8900094",
+                "3000",
+                "bar",
+                "",
+                10,
+                0,
                 sp,
                 user,
                 searchCall
-            )
-            return search(events, -1, sp, user, searchCall)
+            )!!
+            System.out.println(" -- >")
+            return search(events, 2, sp, user, searchCall)
         }
         2 -> {
             System.out.println(data)
@@ -43,7 +49,8 @@ fun search(data: JSONObject, resumeAt: Int = -1, sp: SearchParams, user: User, s
                     val name = place.getString("name")
                     val id = place.getString("id")
                     val structuredPlace = Place(id, name)
-                    val fieldsWanted = "page,location"
+                    val fieldsWanted =
+                        "name,location,category_list,description,hours,is_verified,payment_options,price_range,rating_count"
 
                     val place_info = ServeurFBProxy.searchForPlaceInfo(
                         placeId = id,
@@ -54,12 +61,12 @@ fun search(data: JSONObject, resumeAt: Int = -1, sp: SearchParams, user: User, s
                         s = searchCall
                     )!!
                     place.put("place_info", place_info)
-                    var location: JSONObject = JSONObject("{}")
+                    var location: JSONObject = JSONObject()
                     if (place_info.has("location")) {
                         location = JSONObject(place_info.get("location"))
                     }
 
-                    var page: JSONObject = JSONObject("{}")
+                    var page: JSONObject = JSONObject()
                     var pageId: String = ""
                     if (place_info.has("page")) {
                         page = JSONObject(place_info.get("page"))
@@ -76,12 +83,12 @@ fun search(data: JSONObject, resumeAt: Int = -1, sp: SearchParams, user: User, s
                             value = location
                         ),
                         page = Place_Page(
-                            dunno = page.toString()
+                            dunno = place!!
                         )
                     )
                     placeRepository.add(structuredPlace)
                 }
-                val data_ = JSONObject().put("items", JSONArray(placeRepository.getAll()))
+                val data_ = JSONObject(placeRepository)
                 //val paging = data.getJSONObject("paging")
                 //TODO("paging")
                 return search(data_, 3, sp, user, searchCall)

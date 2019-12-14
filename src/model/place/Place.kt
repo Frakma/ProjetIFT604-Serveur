@@ -1,10 +1,11 @@
 package projetift604.model.place
 
+import com.google.gson.annotations.Expose
 import org.json.JSONObject
 
 
 data class Place_Page(
-    val dunno: String? = ""
+    @Expose val dunno: JSONObject = JSONObject()
 ) {
     /*override fun toString(): String {
         return "{dunno:$dunno}"
@@ -12,9 +13,9 @@ data class Place_Page(
 }
 
 data class Location(
-    val latitude: String? = "0.0",
-    val longitude: String? = "0.0",
-    val value: JSONObject? = JSONObject("{}")
+    @Expose val latitude: String? = "0.0",
+    @Expose val longitude: String? = "0.0",
+    @Expose val value: JSONObject? = JSONObject("{}")
 ) {
     /*override fun toString(): String {
         return "{lat:$latitude,lon:$longitude}"
@@ -28,9 +29,9 @@ data class Location(
 }
 
 data class Place_Info(
-    val pageId: String? = "",
-    val location: Location? = Location(),
-    var page: Place_Page? = Place_Page()
+    @Expose val pageId: String? = "",
+    @Expose val location: Location? = Location(),
+    @Expose var page: Place_Page? = Place_Page()
 ) {
     /*override fun toString(): String {
         return "{pageId:$pageId,location:$location,page:$page}"
@@ -38,9 +39,9 @@ data class Place_Info(
 }
 
 data class Place(
-    val id: String,
-    val name: String,
-    var place_info: Place_Info? = Place_Info()
+    @Expose val id: String,
+    @Expose val name: String,
+    @Expose var place_info: Place_Info? = Place_Info()
 ) {
     /*override fun toString(): String {
         return "{id:$id,name:$name,place_info:$place_info}"

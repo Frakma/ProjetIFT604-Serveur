@@ -1,23 +1,22 @@
 package projetift604.user
 
+import com.google.gson.annotations.Expose
 import org.json.JSONObject
+import projetift604.model.server.searchEngine.Response
 import projetift604.server.generateHashWithHmac256
-import serveur.ServeurREST
 import java.text.SimpleDateFormat
 import java.util.*
 
-data class Pref(val name: String, val value: String) {
+data class Pref(@Expose val name: String, val value: String) {
     /*override fun toString(): String {
         return "{name:${name},value:${value}}"
     }*/
 }
 
-data class UserPref(val listPref: MutableMap<String, Pref> = mutableMapOf()) {
+data class UserPref(@Expose val listPref: MutableMap<String, Pref> = mutableMapOf()) {
     /*override fun toString(): String {
         return "{items:${
-            listPref.
-                values.
-                joinToString(
+            listPref.values.joinToString(
                     prefix = "[{",
                     postfix = "}]",
                     separator = ","                    
@@ -27,20 +26,24 @@ data class UserPref(val listPref: MutableMap<String, Pref> = mutableMapOf()) {
 }
 
 data class SearchCall(
-    val uri: String,
-    val param: JSONObject,
-    val date: String = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(Date())
+    @Expose val uri: String,
+    @Expose val param: JSONObject,
+    @Expose val date: String = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(Date())
 ) {
     /*override fun toString(): String {
         return "{route:$uri,param:$param,date:$date}"
     }*/
 }
 
-data class LastResearch(val researchHash: String, val searchCall: SearchCall, val response: ServeurREST.Response) {
+data class LastResearch(
+    @Expose val researchHash: String,
+    @Expose val searchCall: SearchCall,
+    @Expose val response: Response
+) {
     companion object {
         fun create(
             searchCall: SearchCall,
-            response: ServeurREST.Response?
+            response: Response?
         ): LastResearch {
             return LastResearch(
                 generateHashWithHmac256(searchCall.date, searchCall.uri + searchCall.param), searchCall,
@@ -50,7 +53,9 @@ data class LastResearch(val researchHash: String, val searchCall: SearchCall, va
     }
 }
 
-data class UserLastResearchs(val listLastResearchs: MutableMap<String, LastResearch> = mutableMapOf()) {
+data class UserLastResearchs(
+    @Expose val listLastResearchs: MutableMap<String, LastResearch> = mutableMapOf()
+) {
     /*override fun toString(): String {
         return "{items: ${
             listLastResearchs.
@@ -62,7 +67,7 @@ data class UserLastResearchs(val listLastResearchs: MutableMap<String, LastResea
                 ){("'${it.key}':${it.value.response.data.length}") }
         }"
     }*/
-    fun addLastResearch(searchCall: SearchCall, resp: ServeurREST.Response) {
+    fun addLastResearch(searchCall: SearchCall, resp: Response) {
         val lastResearch = LastResearch.create(searchCall, resp)
         listLastResearchs.set(lastResearch.researchHash, lastResearch)
     }
@@ -70,12 +75,12 @@ data class UserLastResearchs(val listLastResearchs: MutableMap<String, LastResea
 
 
 open class User(
-    val id: String,
-    val name: String = "user",
-    val userPref: UserPref = UserPref(),
-    val userLastResearchs: UserLastResearchs = UserLastResearchs()
+    @Expose val id: String,
+    @Expose val name: String = "user",
+    @Expose val userPref: UserPref = UserPref(),
+    @Expose val userLastResearchs: UserLastResearchs = UserLastResearchs()
 ) {
-    fun getAllPrefs(): Iterable<Map.Entry<String, Pref>> {
+    fun getAll(): Iterable<Map.Entry<String, Pref>> {
         return userPref.listPref.asIterable()
     }
 
@@ -105,7 +110,7 @@ open class User(
         return userLastResearchs.listLastResearchs.get(converted.researchHash)
     }
 
-    fun addLastResearch(call: SearchCall, resp: ServeurREST.Response) {
+    fun addLastResearch(call: SearchCall, resp: Response) {
         if (userLastResearchs.listLastResearchs.size == nbMaxLastResearchs) {
             removeLastResearch(userLastResearchs.listLastResearchs.asSequence().elementAt(0).key)
         }
@@ -116,7 +121,7 @@ open class User(
         userLastResearchs.listLastResearchs.remove(hash)
     }
 
-    fun updateLastResearch(call: SearchCall, resp: ServeurREST.Response): LastResearch? {
+    fun updateLastResearch(call: SearchCall, resp: Response): LastResearch? {
         val converted = LastResearch.create(call, resp)
         return userLastResearchs.listLastResearchs.replace(converted.researchHash, converted)
     }

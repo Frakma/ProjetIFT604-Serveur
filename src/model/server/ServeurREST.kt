@@ -1,9 +1,9 @@
 package serveur
 
 
-import com.google.gson.FieldNamingPolicy
-import com.google.gson.Gson
+import com.google.gson.annotations.Expose
 import io.ktor.application.ApplicationCall
+import io.ktor.application.MissingApplicationFeatureException
 import io.ktor.application.call
 import io.ktor.application.install
 import io.ktor.features.*
@@ -12,7 +12,6 @@ import io.ktor.http.CacheControl
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.CachingOptions
-import io.ktor.request.receiveParameters
 import io.ktor.request.uri
 import io.ktor.response.respond
 import io.ktor.response.respondRedirect
@@ -26,18 +25,16 @@ import io.ktor.server.netty.Netty
 import io.ktor.sessions.*
 import io.ktor.util.KtorExperimentalAPI
 import io.ktor.util.hex
-import kotlinx.coroutines.io.readFully
 import org.json.JSONObject
+import projetift604.model.server.searchEngine.Response
 import projetift604.model.server.searchEngine.SearchParams
+import projetift604.model.server.searchEngine.formatResponse
 import projetift604.model.server.searchEngine.search
 import projetift604.server.UserRepository
 import projetift604.server.fb.ServeurFBProxy
 import projetift604.user.SearchCall
 import projetift604.user.User
 import java.lang.Thread.sleep
-import java.lang.reflect.Modifier
-import java.nio.charset.Charset
-import java.text.DateFormat
 import java.util.*
 import kotlin.collections.set
 
@@ -70,9 +67,9 @@ class ServeurREST {
                     sleep(e.retry_in)
                     LOCK.notify()
                 }
-                val placesCall = search(e.data!!, e.resumeAt!!, e.sp, user, searchCall!!)
+                val placesCall = search(e.data!!, e.resumeAt!!, e.sp, user, searchCall!!)!!
 
-                val response = Response(status = "OK", data = placesCall.toString())
+                val response = Response(status = "OK", data = placesCall)
                 call.respond(formatResponse(searchCall, response, user))
             }
             exception<Throwable> { e ->
@@ -83,28 +80,58 @@ class ServeurREST {
         ///*
         install(Compression)
         install(ContentNegotiation) {
-            /*serialization(
+            /*
+            jackson {
+                configure(SerializationFeature.INDENT_OUTPUT, true)
+                setDefaultPrettyPrinter(DefaultPrettyPrinter())
+                //registerModule(JavaTimeModule())  // support java.time.* types
+            }
+            */
+
+            /*//
+            serialization(
                 contentType = ContentType.Application.Json,
                 json = Json(
                     DefaultJsonConfiguration.copy(
                         prettyPrint = true
                     )
                 )
-            )*/
+            )
+            */
 
             gson {
                 setPrettyPrinting()
-                disableHtmlEscaping()
-                enableComplexMapKeySerialization()
-                serializeNulls()
-                serializeSpecialFloatingPointValues()
-                setDateFormat(DateFormat.DEFAULT)
-                setFieldNamingPolicy(FieldNamingPolicy.IDENTITY)
-                generateNonExecutableJson()
-                setLenient()
-                setVersion(0.0)
-                excludeFieldsWithModifiers(Modifier.TRANSIENT)
+                //enableComplexMapKeySerialization()
             }
+            /*
+            gson {
+                setVersion(0.0)
+                setPrettyPrinting()
+                setLenient()
+                //serializeNulls()
+                //serializeSpecialFloatingPointValues()
+                //setDateFormat(DateFormat.DEFAULT)
+                setFieldNamingPolicy(FieldNamingPolicy.IDENTITY)
+                //excludeFieldsWithModifiers(Modifier.TRANSIENT)
+                //excludeFieldsWithoutExposeAnnotation()
+                //enableComplexMapKeySerialization()
+                //generateNonExecutableJson()
+                disableHtmlEscaping()
+                register(ContentType.Application.Json, GsonConverter(GsonBuilder().apply {
+                    setPrettyPrinting()
+                    //setLenient()
+                    serializeNulls()
+                    serializeSpecialFloatingPointValues()
+                    //setDateFormat(DateFormat.DEFAULT)
+                    setFieldNamingPolicy(FieldNamingPolicy.IDENTITY)
+                    //excludeFieldsWithModifiers(Modifier.TRANSIENT)
+                    //excludeFieldsWithoutExposeAnnotation()
+                    enableComplexMapKeySerialization()
+                    //generateNonExecutableJson()
+                    //disableHtmlEscaping()
+                }.create()))
+            }
+            */
         }
         //
         install(CallLogging)
@@ -137,16 +164,12 @@ class ServeurREST {
             get("/") {
                 val params = JSONObject()
                 val searchCall = SearchCall(call.request.uri, params)
-                val session = call.sessions.get<LoginSession>()
-                val user = initUser(session!!.id)
-                call.sessions.set(LoginSession(user.id))
-
-                val response = Response(status = "OK", data = user.id)
+                val user = takeCareOfUser(call)
+                val response = Response(status = "OK", data = JSONObject(user).put("userPref", ""))
                 call.respond(formatResponse(searchCall, response, user))
             }
             get("/{userId}") {
                 val p = call.parameters
-                System.out.println(p)
                 val params = JSONObject(p)
                 val searchCall = SearchCall(call.request.uri, params)
                 val session = call.sessions.get<LoginSession>()
@@ -156,14 +179,20 @@ class ServeurREST {
                 if (user != null) {
                     call.sessions.set(LoginSession(user.id))
                 }
-
-                val response = Response(status = status, data = user.toString())
+                val response = Response(status = status, data = JSONObject(user))
                 call.respond(formatResponse(searchCall, response, user))
             }
             route("/callback") {
                 get("{args...}") {
-                    val params = call.receiveParameters()
-                    call.respond(Response(status = "OK", data = "route = '/callback/$params'"))
+                    val p = call.parameters
+                    System.out.println(p)
+                    val params = JSONObject(p)
+                    val searchCall = SearchCall(call.request.uri, params)
+                    val session = call.sessions.get<LoginSession>()
+                    val userId = if (params.has("userId")) params.getString("userId") else session!!.id
+                    val user = findUser(userId)
+                    val response = Response(status = "OK", data = JSONObject().put("route", "'/callback/$params'"))
+                    call.respond(formatResponse(searchCall, response, user))
                 }
                 get("") { call.respond(Response(status = "OK")) }
             }
@@ -173,6 +202,12 @@ class ServeurREST {
                     //call.respond(Response(status = "OK"))
                 }
                 post("") {
+                    val params = JSONObject()
+                    val searchCall = SearchCall(call.request.uri, params)
+                    val user = takeCareOfUser(call)
+                    val sp = SearchParams()
+
+/*
                     val callParameters = "{}"//call.receiveParameters()
                     val params = JSONObject(callParameters).toMap()
                     System.out.println(params)
@@ -184,14 +219,16 @@ class ServeurREST {
                     //val sp = SearchParams.extract(params)
                     val sp = SearchParams()
                     System.out.println(sp)
+
+ */
                     val placesCall = search(
                         JSONObject(sp.data),
                         resumeAt = sp.startAtPhase,
                         sp = sp,
                         user = user,
                         searchCall = searchCall
-                    )
-                    val response = Response(status = "OK", data = placesCall.toString())
+                    )!!
+                    val response = Response(status = "OK", data = placesCall)
                     call.respond(formatResponse(searchCall, response, user))
                 }
             }
@@ -208,29 +245,29 @@ class ServeurREST {
     }
 
 
-    private fun formatResponse(call: SearchCall, response: Response, user: User?): Response {
-        user!!.addLastResearch(call, response)
-        System.out.println(
-            "-------------" + "\n" +
-                    "call: ${call}" + "\n" +
-                    "resp: ${response}" + "\n" +
-                    "user: ${user}" + "\n" +
-                    "-------------" + "\n"
-        )
-        return response
+    val repository = UserRepository()
+    private fun takeCareOfUser(call: ApplicationCall): User {
+        var user = initUser()
+        try {
+            val session = call.sessions.get<LoginSession>()!!
+            user = initUser(session.id)
+        } catch (e: MissingApplicationFeatureException) {
+            call.sessions.set(LoginSession(user.id))
+        } finally {
+            return user
+        }
     }
 
-    val repository = UserRepository()
-    fun findUser(userId: String): User? {
+    private fun findUser(userId: String): User? {
         return repository.get(userId)
     }
 
-    fun initUser(userId: String = UUID.randomUUID().toString()): User {
+    private fun initUser(userId: String = UUID.randomUUID().toString()): User {
         return repository.get(userId) ?: repository.add(User(userId))
     }
 
-    data class Response(val status: String, val data: String = "")
-    data class LoginSession(val id: String)
+
+    data class LoginSession(@Expose val id: String)
 
     class HttpRedirectException(val location: String, val permanent: Boolean = false) : RuntimeException()
 
@@ -239,22 +276,6 @@ class ServeurREST {
 
     fun start() {
         server.start(wait = true)
-    }
-
-    internal suspend fun receiveParams(call: ApplicationCall): JSONObject {
-        val channel = call.request.receiveChannel()
-        val ba = ByteArray(channel.availableForRead)
-        channel.readFully(ba)
-        val s = ba.toString(Charset.defaultCharset())
-
-        println(s) // prints JSON
-
-        val gson = Gson()
-        val po = gson.fromJson(s, String::class.java)
-
-        val p = JSONObject(po)
-        println(p)
-        return p
     }
 }
 

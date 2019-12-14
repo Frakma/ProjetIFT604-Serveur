@@ -2,7 +2,7 @@ data class EventfulConfig(val DOMAIN: String, val APP_KEY: String)
 data class FBConfig(val DOMAIN: String, val APP_ID: String, val APP_SECRET: String)
 data class Config(val FB: FBConfig, val EVENTFUL: EventfulConfig) {
     companion object {
-        private val config: Config = Config(
+        val config: Config = Config(
             FBConfig(
                 "https://graph.facebook.com/v5.0/",
                 "454036578587951",

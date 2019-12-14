@@ -1,15 +1,10 @@
 package projetift604.model.server.eventful
 
-import okhttp3.MediaType
-import okhttp3.ResponseBody
-import org.json.JSONArray
 import org.json.JSONObject
 import projetift604.model.server.searchEngine.SearchParams
-import projetift604.model.server.searchEngine.ValidDate
 import projetift604.server.eventful.ServeurEventful
 import projetift604.user.SearchCall
 import projetift604.user.User
-import retrofit2.Response
 
 
 class ServerEventfulProxy {
@@ -18,7 +13,7 @@ class ServerEventfulProxy {
 
         fun searchForEvents(resumeAt: Int?, sp: SearchParams, u: User, s: SearchCall): JSONObject {
             System.out.println("------------")
-            val spDate: String = sp.data.date
+            /*val spDate: String = sp.data.date
             System.out.println(spDate)
             val date = ValidDate.validate(spDate)
             System.out.println(date)
@@ -38,8 +33,10 @@ class ServerEventfulProxy {
             System.out.println(resp)
             System.out.println("------------")
             System.out.println("------------")
-            return extractBody(resp, resumeAt, sp, u, s)
+            return extractBody(resp, resumeAt, sp, u, s)*/
+            return JSONObject()
         }
+/*
 
         fun extractBody(
             resp: Response<ResponseBody>,
@@ -78,9 +75,6 @@ class ServerEventfulProxy {
             return data_
         }
 
-        /*
-         * Utilities below
-         */
 
         fun restart(
             retry_in: Long,
@@ -106,5 +100,8 @@ class ServerEventfulProxy {
             val userId: String?,
             val searchCall: SearchCall?
         ) : Exception(msg)
+
+ */
     }
+
 }
