@@ -139,8 +139,10 @@ data class SearchParams(
     val data: SearchParamsData = SearchParamsData()
 ) {
     companion object {
-        fun extract(ps: Map<String, List<String>>): SearchParams {
-            //System.out.println(ps)
+        fun extract(ps_: JSONObject): SearchParams {
+            SLog.log("params: ${ps_}")
+            val ps = ps_.toMap()
+            /*
             val type: String = if (ps.containsKey("type")) ps.get("type")!!.get(0) else ""
             val startAtPhase: Int = if (ps.containsKey("startAtPhase")) ps.get("startAtPhase")!!.get(0).toInt() else 0
             val stopAtPhase: Int = if (ps.containsKey("stopAtPhase")) ps.get("stopAtPhase")!!.get(0).toInt() else -1
@@ -155,6 +157,9 @@ data class SearchParams(
                 if (data_.has("data")) SearchParamsData(center, distance) else SearchParamsData()
 
             val sp = SearchParams(type, startAtPhase, stopAtPhase, callerObjectId, limit, offset, data)
+
+             */
+            val sp = SearchParams()
             return sp
         }
     }

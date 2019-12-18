@@ -27,6 +27,7 @@ import io.ktor.sessions.*
 import io.ktor.util.KtorExperimentalAPI
 import io.ktor.util.hex
 import org.json.JSONObject
+import projetift604.config.SLog
 import projetift604.model.server.searchEngine.Response
 import projetift604.model.server.searchEngine.SearchEngine
 import projetift604.model.server.searchEngine.SearchParams
@@ -204,11 +205,11 @@ class ServeurREST {
                 }
                 post("") {
                     val callParameters = call.receiveParameters()
+                    SLog.log(call.toString())
                     val params = JSONObject(callParameters).toMap()
                     val searchCall = SearchCall(call.request.uri, JSONObject(params))
                     val user = takeCareOfUser(call)
-                    val sp = SearchParams()
-
+                    val sp = SearchParams.extract(searchCall.param)
 /*
                     val callParameters = "{}"//call.receiveParameters()
                     val params = JSONObject(callParameters).toMap()
