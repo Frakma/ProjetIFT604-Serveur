@@ -1,5 +1,6 @@
 package projetift604.model.server.eventful
 
+import SLog
 import okhttp3.MediaType
 import okhttp3.ResponseBody
 import org.json.JSONArray
@@ -17,7 +18,7 @@ class ServerEventfulProxy {
         private val serveurEventful = ServeurEventful.create()
 
         fun searchForEvents(resumeAt: Int?, sp: SearchParams, u: User, s: SearchCall): JSONObject {
-            System.out.println("\t-fetching eventful...")
+            SLog.log("fetching eventful...")
             val spDate: String = sp.data.date
             val date = ValidDate.validate(spDate)
             val call = serveurEventful.searchForEvents_(
@@ -67,7 +68,7 @@ class ServerEventfulProxy {
                 )//ServeurFBProxy.FBunauthorizedRequest()
                 //else -> throw java.lang.Exception(resp.errorBody().toString())
             }
-            System.out.println("\t-Extracted: ${data_.toString().subSequence(0, 150)}")
+            SLog.log("Extracted: ${data_.toString().subSequence(0, 150)}")
             return data_
         }
 

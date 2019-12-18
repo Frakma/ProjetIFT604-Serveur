@@ -1,5 +1,6 @@
 package projetift604.model.server.searchEngine
 
+import SLog
 import org.json.JSONObject
 import projetift604.model.place.Location
 import projetift604.model.place.Place
@@ -14,7 +15,9 @@ import java.text.SimpleDateFormat
 
 val placeRepository = PlaceRepository()
 fun search(data: JSONObject, resumeAt: Int = -1, sp: SearchParams, user: User, searchCall: SearchCall): JSONObject? {
-    System.out.println("[${resumeAt}]:----------------------")
+    SLog.changeIndent(SLog.Companion.INDENT.MINUS)
+    SLog.log("[${resumeAt}]:")
+    SLog.changeIndent(SLog.Companion.INDENT.PLUS)
     if (sp.stopAtPhase != -1) {
         if (resumeAt > sp.stopAtPhase) {
             return data
@@ -22,10 +25,10 @@ fun search(data: JSONObject, resumeAt: Int = -1, sp: SearchParams, user: User, s
     }
     when (resumeAt) {
         0 -> {
-            System.out.println("\tdata: ${data}")
-            System.out.println("\t-user: ${user}")
-            System.out.println("\t-sp: ${sp}")
-            System.out.println("\t-sc: ${searchCall}")
+            SLog.log("data: ${data}")
+            SLog.log("user: ${user}")
+            SLog.log("sp: ${sp}")
+            SLog.log("sc: ${searchCall}")
             return search(data, 1, sp, user, searchCall)
         }
         1 -> {
@@ -174,7 +177,7 @@ abstract class ValidDate {
                 else -> FUTURE
                 //"" -> make(s)
             }
-            System.out.println("\t-validated date: [${s}] -> [${d}]")
+            SLog.log("validated date: [${s}] -> [${d}]", true)
             return d
         }
     }
