@@ -6,11 +6,11 @@ import okhttp3.ResponseBody
 import org.json.JSONArray
 import org.json.JSONObject
 import projetift604.model.server.searchEngine.SearchParams
-import projetift604.model.server.searchEngine.ValidDate
 import projetift604.server.eventful.ServeurEventful
 import projetift604.user.SearchCall
 import projetift604.user.User
 import retrofit2.Response
+import java.text.SimpleDateFormat
 
 
 class ServerEventfulProxy {
@@ -100,4 +100,38 @@ class ServerEventfulProxy {
 
     }
 
+}
+
+
+abstract class ValidDate {
+    companion object {
+        val ALL = "All"
+        val FUTURE = "Future"
+        val PAST = "Past"
+        val TODAY = "Today"
+        val LASTWEEK = "Last+Week"
+        val THISWEEK = "This+Week"
+        val NEXTWEEK = "Next+Week"
+        private val EXACT_PATTERN = "YYYYMMDD00-YYYYMMDD00"
+        private val EXACT = SimpleDateFormat(EXACT_PATTERN)
+        private fun make(s: String): String {
+            return EXACT.parse(s).toString()
+        }
+
+        fun validate(s: String): String {
+            val d = when (s) {
+                ALL -> ALL
+                FUTURE -> FUTURE
+                PAST -> PAST
+                TODAY -> TODAY
+                LASTWEEK -> LASTWEEK
+                THISWEEK -> THISWEEK
+                NEXTWEEK -> NEXTWEEK
+                else -> FUTURE
+                //"" -> make(s)
+            }
+            SLog.log("validated date: [${s}] -> [${d}]", true)
+            return d
+        }
+    }
 }

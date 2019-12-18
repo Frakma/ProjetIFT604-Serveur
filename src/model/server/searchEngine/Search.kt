@@ -11,7 +11,6 @@ import projetift604.server.fb.PlaceRepository
 import projetift604.server.fb.ServeurFBProxy
 import projetift604.user.SearchCall
 import projetift604.user.User
-import java.text.SimpleDateFormat
 
 val placeRepository = PlaceRepository()
 fun search(data: JSONObject, resumeAt: Int = -1, sp: SearchParams, user: User, searchCall: SearchCall): JSONObject? {
@@ -146,39 +145,6 @@ data class SearchParams(
 
             val sp = SearchParams(type, startAtPhase, stopAtPhase, callerObjectId, limit, offset, data)
             return sp
-        }
-    }
-}
-
-abstract class ValidDate {
-    companion object {
-        val ALL = "All"
-        val FUTURE = "Future"
-        val PAST = "Past"
-        val TODAY = "Today"
-        val LASTWEEK = "Last+Week"
-        val THISWEEK = "This+Week"
-        val NEXTWEEK = "Next+Week"
-        private val EXACT_PATTERN = "YYYYMMDD00-YYYYMMDD00"
-        private val EXACT = SimpleDateFormat(EXACT_PATTERN)
-        private fun make(s: String): String {
-            return EXACT.parse(s).toString()
-        }
-
-        fun validate(s: String): String {
-            val d = when (s) {
-                ALL -> ALL
-                FUTURE -> FUTURE
-                PAST -> PAST
-                TODAY -> TODAY
-                LASTWEEK -> LASTWEEK
-                THISWEEK -> THISWEEK
-                NEXTWEEK -> NEXTWEEK
-                else -> FUTURE
-                //"" -> make(s)
-            }
-            SLog.log("validated date: [${s}] -> [${d}]", true)
-            return d
         }
     }
 }

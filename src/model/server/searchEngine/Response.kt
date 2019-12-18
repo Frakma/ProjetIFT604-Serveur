@@ -15,8 +15,8 @@ fun formatResponse(call: SearchCall, response: Response, user: User?): String {
     SLog.log("call: ${call}")
     SLog.log("resp: ${response.toString().subSequence(0, 150)}...")
     SLog.log("user: ${user}:")
-    SLog.log("-------------")
     SLog.changeIndent(SLog.Companion.INDENT.MINUS)
+    SLog.log("-------------")
     return response.toString()
 }
 
