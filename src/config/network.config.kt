@@ -19,36 +19,3 @@ data class Config(val FB: FBConfig, val EVENTFUL: EventfulConfig) {
         }
     }
 }
-
-class SLog {
-    companion object {
-        private var indentLevel = 0
-
-        enum class INDENT { PLUS, MINUS, SAME, RESET }
-
-        private fun indentToTab(): String {
-            return "\t".repeat(indentLevel) + "-"
-        }
-
-        fun log(str: String, indentOnce: Boolean = false) {
-            if (indentOnce) {
-                changeIndent(INDENT.PLUS)
-            }
-            System.out.println(indentToTab() + str)
-            if (indentOnce) {
-                changeIndent(INDENT.MINUS)
-            }
-        }
-
-        fun changeIndent(level: INDENT? = INDENT.SAME) {
-            when (level) {
-                INDENT.PLUS -> indentLevel++
-                INDENT.MINUS -> if (indentLevel > 0) {
-                    indentLevel--
-                }
-                INDENT.RESET -> indentLevel = 0
-                else -> indentLevel = indentLevel
-            }
-        }
-    }
-}

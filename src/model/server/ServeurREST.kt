@@ -12,6 +12,7 @@ import io.ktor.http.CacheControl
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.CachingOptions
+import io.ktor.request.receiveParameters
 import io.ktor.request.uri
 import io.ktor.response.respond
 import io.ktor.response.respondRedirect
@@ -202,8 +203,9 @@ class ServeurREST {
                     //call.respond(Response(status = "OK"))
                 }
                 post("") {
-                    val params = JSONObject()
-                    val searchCall = SearchCall(call.request.uri, params)
+                    val callParameters = call.receiveParameters()
+                    val params = JSONObject(callParameters).toMap()
+                    val searchCall = SearchCall(call.request.uri, JSONObject(params))
                     val user = takeCareOfUser(call)
                     val sp = SearchParams()
 
@@ -216,8 +218,7 @@ class ServeurREST {
                     val session = call.sessions.get<LoginSession>()
                     val user = initUser(session!!.id)
 
-                    //val sp = SearchParams.extract(params)
-                    val sp = SearchParams()
+                    val sp = SearchParams.extract(params)
                     System.out.println(sp)
 
  */

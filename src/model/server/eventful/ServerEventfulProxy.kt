@@ -1,9 +1,9 @@
 package projetift604.model.server.eventful
 
-import SLog
 import okhttp3.ResponseBody
 import org.json.JSONArray
 import org.json.JSONObject
+import projetift604.config.SLog
 import projetift604.model.server.searchEngine.SearchParams
 import projetift604.server.eventful.ServeurEventful
 import projetift604.user.SearchCall
@@ -66,7 +66,7 @@ class ServerEventfulProxy {
                 //ServeurFBProxy.FBunauthorizedRequest()
                 //else -> throw java.lang.Exception(resp.errorBody().toString())
             }
-            SLog.log("Extracted: ${data_.toString().subSequence(0, 160)}...")
+            SLog.log("Extracted: ${data_}")
             return data_
         }
 

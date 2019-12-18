@@ -1,8 +1,8 @@
 package projetift604.model.server.searchEngine
 
-import SLog
 import com.google.gson.annotations.Expose
 import org.json.JSONObject
+import projetift604.config.SLog
 import projetift604.model.server.eventful.ServerEventfulProxy
 import projetift604.model.server.eventful.events.Event
 import projetift604.model.server.eventful.events.EventRepository
@@ -92,7 +92,7 @@ class SearchEngine {
                     return search(data, 3, sp, user, searchCall)
                 }
                 else -> {
-                    SLog.log(data.toString())
+                    SLog.log("EXITING: ${data}")
                     return data
                 }
             }
