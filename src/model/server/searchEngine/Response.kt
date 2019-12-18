@@ -17,7 +17,7 @@ fun formatResponse(call: SearchCall, response: Response, user: User?): String {
     SLog.log("user: ${user}:")
     SLog.changeIndent(SLog.Companion.INDENT.MINUS)
     SLog.log("-------------")
-    return response.toString()
+    return response.data.toString()
 }
 
 data class Response(

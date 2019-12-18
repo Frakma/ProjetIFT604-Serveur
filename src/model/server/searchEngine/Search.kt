@@ -4,11 +4,14 @@ import SLog
 import com.google.gson.annotations.Expose
 import org.json.JSONObject
 import projetift604.model.server.eventful.ServerEventfulProxy
+import projetift604.model.server.eventful.events.Event
+import projetift604.model.server.eventful.events.EventRepository
 import projetift604.user.SearchCall
 import projetift604.user.User
 
 class SearchEngine {
     companion object {
+        private val eventRepository = EventRepository()
         fun search(
             data: JSONObject,
             resumeAt: Int = -1,
@@ -45,14 +48,41 @@ class SearchEngine {
                         val items = items_.getJSONArray("event")
                         for (i in 0 until items.length()) {
                             val item = items.getJSONObject(i)
+
+                            val id = if (data.has("id")) data.getString("id") else ""
+                            val title = if (data.has("title")) data.getString("title") else ""
+                            val location = if (data.has("latitude") && data.has("longitude")) Location(
+                                data.getString("latitude"),
+                                "${data.get("longitude")}"
+                            ) else Location()
+                            val image: JSONObject? = if (data.has("image")) data.getJSONObject("image") else null
+                            val performers: JSONObject? =
+                                if (data.has("performers")) data.getJSONObject("performers") else null
+                            val url: String? = if (data.has("url")) data.getString("url") else ""
+                            val startTime: String? = if (data.has("start_time")) data.getString("start_time") else ""
+
+                            val nItem = Event.create(id, title, location, image, performers, url, startTime)
+                            SLog.log("$i: [$nItem]")
                             SLog.log(
-                                "$i: ${item.getString("title")} https://www.google.fr/maps/place/${item.getString("latitude")},${item.getString(
-                                    "longitude"
-                                )}"
+                                "maps url: https://www.google.fr/maps/place/${nItem.location.latitude},${nItem.location.longitude}",
+                                true
                             )
+                            //SLog.log(item.keySet().toString(), true)
+
+                            /*
+                            SLog.changeIndent(SLog.Companion.INDENT.PLUS)
+                            SLog.log("id: ${nItem.id}")
+                            SLog.log("title: ${nItem.title}")
+                            SLog.log("maps url: https://www.google.fr/maps/place/${nItem.location.latitude},${nItem.location.longitude}")
+                            SLog.log("url: ${nItem.url}")
+                            SLog.log("image: ${nItem.image?.getString("url")}")
+                            SLog.log("start time: ${nItem.startTime}")
+                            SLog.changeIndent(SLog.Companion.INDENT.MINUS)
+                            */
+                            eventRepository.add(nItem)
                         }
                         SLog.changeIndent(SLog.Companion.INDENT.MINUS)
-                        val data_ = JSONObject("{}")
+                        val data_ = JSONObject(eventRepository.getAll())
                         //val paging = data.getJSONObject("paging")
                         //TODO("paging")
                         return search(data_, 3, sp, user, searchCall)
@@ -60,6 +90,7 @@ class SearchEngine {
                     return search(data, 3, sp, user, searchCall)
                 }
                 else -> {
+                    SLog.log(data.toString())
                     return data
                 }
             }
