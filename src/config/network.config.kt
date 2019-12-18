@@ -9,7 +9,7 @@ data class Config(val FB: FBConfig, val EVENTFUL: EventfulConfig) {
                 "7b2be4392bf16a72e6ab1826b90ae438"
             ),
             EventfulConfig(
-                "https://api.eventful.com/json/",
+                "https://api.eventful.com/",
                 "gnDwNrqpCQWw3P6J"
             )
         )

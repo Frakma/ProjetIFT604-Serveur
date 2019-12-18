@@ -14,7 +14,7 @@ import java.text.SimpleDateFormat
 
 val placeRepository = PlaceRepository()
 fun search(data: JSONObject, resumeAt: Int = -1, sp: SearchParams, user: User, searchCall: SearchCall): JSONObject? {
-    System.out.println("[${resumeAt}]: ${data} | ${user} | ${sp} | ${searchCall}")
+    System.out.println("[${resumeAt}]:----------------------")
     if (sp.stopAtPhase != -1) {
         if (resumeAt > sp.stopAtPhase) {
             return data
@@ -22,10 +22,13 @@ fun search(data: JSONObject, resumeAt: Int = -1, sp: SearchParams, user: User, s
     }
     when (resumeAt) {
         0 -> {
+            System.out.println("\tdata: ${data}")
+            System.out.println("\t-user: ${user}")
+            System.out.println("\t-sp: ${sp}")
+            System.out.println("\t-sc: ${searchCall}")
             return search(data, 1, sp, user, searchCall)
         }
         1 -> {
-            System.out.println(" -- >")
             val events = ServerEventfulProxy.searchForEvents(1, sp, user, searchCall)
             /*
             val events = ServeurFBProxy.searchForPlaces(
@@ -40,7 +43,6 @@ fun search(data: JSONObject, resumeAt: Int = -1, sp: SearchParams, user: User, s
                 searchCall
             )!!
             */
-            System.out.println(" -- >")
             return search(events, -1, sp, user, searchCall)
         }
         2 -> {
@@ -108,7 +110,7 @@ data class SearchParamsData(
     val center: Location = Location(),
     val distance: String = "1000",
     val date: String = "today",
-    val keyworkds: String = "nightlife"
+    val keyworkds: String = "night"
 )
 
 /**
@@ -151,9 +153,9 @@ abstract class ValidDate {
         val FUTURE = "Future"
         val PAST = "Past"
         val TODAY = "Today"
-        val LASTWEEK = "Last Week"
-        val THISWEEK = "This Week"
-        val NEXTWEEK = "Next Week"
+        val LASTWEEK = "Last+Week"
+        val THISWEEK = "This+Week"
+        val NEXTWEEK = "Next+Week"
         private val EXACT_PATTERN = "YYYYMMDD00-YYYYMMDD00"
         private val EXACT = SimpleDateFormat(EXACT_PATTERN)
         private fun make(s: String): String {
@@ -169,10 +171,10 @@ abstract class ValidDate {
                 LASTWEEK -> LASTWEEK
                 THISWEEK -> THISWEEK
                 NEXTWEEK -> NEXTWEEK
-                else -> TODAY
+                else -> FUTURE
                 //"" -> make(s)
             }
-            System.out.println("-validation date: [${s}] -> [${d}]")
+            System.out.println("\t-validated date: [${s}] -> [${d}]")
             return d
         }
     }

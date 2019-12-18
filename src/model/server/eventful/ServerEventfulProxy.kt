@@ -17,7 +17,7 @@ class ServerEventfulProxy {
         private val serveurEventful = ServeurEventful.create()
 
         fun searchForEvents(resumeAt: Int?, sp: SearchParams, u: User, s: SearchCall): JSONObject {
-            System.out.println("------------")
+            System.out.println("\t-fetching eventful...")
             val spDate: String = sp.data.date
             val date = ValidDate.validate(spDate)
             val call = serveurEventful.searchForEvents_(
@@ -32,8 +32,8 @@ class ServerEventfulProxy {
                 sort_oder = "relevance"
             )
             val resp = call.execute()
-            System.out.println(resp)
-            System.out.println("------------")
+            //System.out.println(resp)
+            //System.out.println("------------")
             return extractBody(resp, resumeAt, sp, u, s)
         }
 
@@ -45,9 +45,6 @@ class ServerEventfulProxy {
             u: User?,
             s: SearchCall?
         ): JSONObject {
-            System.out.println("------------------")
-            System.out.println("Eventful RESPONSE:")
-            System.out.println("${resp}")
             val code = resp.code()
             val body: ResponseBody
             val jsonBody: JSONObject
@@ -57,7 +54,7 @@ class ServerEventfulProxy {
                 200 -> {
                     body = resp.body()!!
                     jsonBody = JSONObject(body.string())
-                    System.out.println("ResponseBody<JSONObject> : ${jsonBody}")
+                    //System.out.println("ResponseBody<JSONObject> : ${jsonBody}")
                     data_ = if (jsonBody.has("data")) JSONObject(jsonBody).put(
                         "data",
                         JSONArray(jsonBody.get("data").toString())
@@ -70,7 +67,7 @@ class ServerEventfulProxy {
                 )//ServeurFBProxy.FBunauthorizedRequest()
                 //else -> throw java.lang.Exception(resp.errorBody().toString())
             }
-            System.out.println("Extracted: ${data_}")
+            System.out.println("\t-Extracted: ${data_.toString().subSequence(0, 150)}")
             return data_
         }
 

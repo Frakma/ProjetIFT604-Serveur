@@ -13,13 +13,13 @@ import retrofit2.http.Query
 
 interface ServeurEventful {
     @Headers("Content-Type:application/json; charset=UTF-8")
-    @GET("/events/search")
+    @GET("json/events/search")
     fun searchForEvents_(
         @Query("app_key") app_key: String,
-        @Query("where") center: String,
+        @Query("l") center: String,
         @Query("within") within: String,
-        @Query("date") date: String,
-        @Query("keywords") keywords: String,
+        @Query("t") date: String,
+        @Query("q") keywords: String,
         @Query("units") units: String,
         @Query("sort_order") sort_oder: String,
         @Query("page_size") page_size: String,

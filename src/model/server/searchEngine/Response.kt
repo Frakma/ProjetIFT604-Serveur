@@ -8,10 +8,10 @@ import projetift604.user.User
 fun formatResponse(call: SearchCall, response: Response, user: User?): String {
     user!!.addLastResearch(call, response)
     System.out.println(
-        "-------------" + "\n" +
-                "call: ${call}" + "\n" +
-                "resp: ${response}" + "\n" +
-                "user: ${user}" + "\n" +
+        "Response-------------" + "\n" +
+                "\t-call: ${call}" + "\n" +
+                "\t-resp: ${response.toString().subSequence(0, 150)}..." + "\n" +
+                "\t-user: ${user}" + "\n" +
                 "-------------" + "\n"
     )
     return response.toString()
