@@ -49,27 +49,28 @@ class SearchEngine {
                         for (i in 0 until items.length()) {
                             val item = items.getJSONObject(i)
 
-                            val id = if (data.has("id")) data.getString("id") else ""
-                            val title = if (data.has("title")) data.getString("title") else ""
-                            val location = if (data.has("latitude") && data.has("longitude")) Location(
-                                data.getString("latitude"),
-                                "${data.get("longitude")}"
+                            val id = if (item.has("id")) item.getString("id") else ""
+                            val title = if (item.has("title")) item.getString("title") else ""
+                            val location = if (item.has("latitude") && item.has("longitude")) Location(
+                                item.getString("latitude"),
+                                "${item.get("longitude")}"
                             ) else Location()
-                            val image: JSONObject? = if (data.has("image")) data.getJSONObject("image") else null
+                            val image: JSONObject? = if (item.has("image")) item.getJSONObject("image") else null
                             val performers: JSONObject? =
-                                if (data.has("performers")) data.getJSONObject("performers") else null
-                            val url: String? = if (data.has("url")) data.getString("url") else ""
-                            val startTime: String? = if (data.has("start_time")) data.getString("start_time") else ""
+                                if (item.has("performers")) item.getJSONObject("performers") else null
+                            val url: String? = if (item.has("url")) item.getString("url") else ""
+                            val startTime: String? = if (item.has("start_time")) item.getString("start_time") else ""
 
                             val nItem = Event.create(id, title, location, image, performers, url, startTime)
-                            SLog.log("$i: [$nItem]")
+                            SLog.log("$i:")
+                            //SLog.log("$i: [$nItem]")
                             SLog.log(
                                 "maps url: https://www.google.fr/maps/place/${nItem.location.latitude},${nItem.location.longitude}",
                                 true
                             )
                             //SLog.log(item.keySet().toString(), true)
 
-                            /*
+                            /**/
                             SLog.changeIndent(SLog.Companion.INDENT.PLUS)
                             SLog.log("id: ${nItem.id}")
                             SLog.log("title: ${nItem.title}")
@@ -78,13 +79,14 @@ class SearchEngine {
                             SLog.log("image: ${nItem.image?.getString("url")}")
                             SLog.log("start time: ${nItem.startTime}")
                             SLog.changeIndent(SLog.Companion.INDENT.MINUS)
-                            */
+                            /**/
                             eventRepository.add(nItem)
                         }
                         SLog.changeIndent(SLog.Companion.INDENT.MINUS)
-                        val data_ = JSONObject(eventRepository.getAll())
+                        val data_ = JSONObject(eventRepository)
                         //val paging = data.getJSONObject("paging")
                         //TODO("paging")
+                        //SLog.log(data_.toString())
                         return search(data_, 3, sp, user, searchCall)
                     }
                     return search(data, 3, sp, user, searchCall)
@@ -138,7 +140,7 @@ data class SearchParams(
 ) {
     companion object {
         fun extract(ps: Map<String, List<String>>): SearchParams {
-            System.out.println(ps)
+            //System.out.println(ps)
             val type: String = if (ps.containsKey("type")) ps.get("type")!!.get(0) else ""
             val startAtPhase: Int = if (ps.containsKey("startAtPhase")) ps.get("startAtPhase")!!.get(0).toInt() else 0
             val stopAtPhase: Int = if (ps.containsKey("stopAtPhase")) ps.get("stopAtPhase")!!.get(0).toInt() else -1

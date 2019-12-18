@@ -66,7 +66,7 @@ class ServerEventfulProxy {
                 //ServeurFBProxy.FBunauthorizedRequest()
                 //else -> throw java.lang.Exception(resp.errorBody().toString())
             }
-            SLog.log("Extracted: ${data_.toString().subSequence(0, 150)}")
+            SLog.log("Extracted: ${data_.toString().subSequence(0, 160)}...")
             return data_
         }
 
