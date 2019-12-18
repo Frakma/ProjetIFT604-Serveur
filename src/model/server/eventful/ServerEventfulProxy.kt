@@ -1,10 +1,15 @@
 package projetift604.model.server.eventful
 
+import okhttp3.MediaType
+import okhttp3.ResponseBody
+import org.json.JSONArray
 import org.json.JSONObject
 import projetift604.model.server.searchEngine.SearchParams
+import projetift604.model.server.searchEngine.ValidDate
 import projetift604.server.eventful.ServeurEventful
 import projetift604.user.SearchCall
 import projetift604.user.User
+import retrofit2.Response
 
 
 class ServerEventfulProxy {
@@ -13,30 +18,25 @@ class ServerEventfulProxy {
 
         fun searchForEvents(resumeAt: Int?, sp: SearchParams, u: User, s: SearchCall): JSONObject {
             System.out.println("------------")
-            /*val spDate: String = sp.data.date
-            System.out.println(spDate)
+            val spDate: String = sp.data.date
             val date = ValidDate.validate(spDate)
-            System.out.println(date)
             val call = serveurEventful.searchForEvents_(
                 app_key = ServeurEventful.app_key,
-                center = sp.data.center.toString(),
-                distance = sp.data.distance,
+                center = sp.data.center.latitude + ',' + sp.data.center.longitude,
+                within = sp.data.distance,
                 date = date,
-                limit = sp.limit.toString(),
+                page_size = sp.limit.toString(),
+                page_number = "1",
                 units = "km",
-                keyworkds = "",
-                count_only = "false",
+                keywords = sp.data.keyworkds,
                 sort_oder = "relevance"
             )
-            System.out.println(call)
             val resp = call.execute()
             System.out.println(resp)
             System.out.println("------------")
-            System.out.println("------------")
-            return extractBody(resp, resumeAt, sp, u, s)*/
-            return JSONObject()
+            return extractBody(resp, resumeAt, sp, u, s)
         }
-/*
+
 
         fun extractBody(
             resp: Response<ResponseBody>,
@@ -56,7 +56,6 @@ class ServerEventfulProxy {
                 //190 -> //ACCESS_TOKEN_ERROR
                 200 -> {
                     body = resp.body()!!
-                    //System.out.println(body)
                     jsonBody = JSONObject(body.string())
                     System.out.println("ResponseBody<JSONObject> : ${jsonBody}")
                     data_ = if (jsonBody.has("data")) JSONObject(jsonBody).put(
@@ -65,13 +64,13 @@ class ServerEventfulProxy {
                     )
                     else jsonBody
                 }
-                400 -> body = ResponseBody.create(
+                else -> body = ResponseBody.create(
                     MediaType.parse("application/json"),
                     "{}"
                 )//ServeurFBProxy.FBunauthorizedRequest()
-                else -> throw java.lang.Exception(resp.errorBody().toString())
+                //else -> throw java.lang.Exception(resp.errorBody().toString())
             }
-            System.out.println("------------------")
+            System.out.println("Extracted: ${data_}")
             return data_
         }
 
@@ -101,7 +100,6 @@ class ServerEventfulProxy {
             val searchCall: SearchCall?
         ) : Exception(msg)
 
- */
     }
 
 }

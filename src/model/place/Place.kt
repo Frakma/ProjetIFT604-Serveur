@@ -13,8 +13,8 @@ data class Place_Page(
 }
 
 data class Location(
-    @Expose val latitude: String? = "0.0",
-    @Expose val longitude: String? = "0.0",
+    @Expose val latitude: String? = "45.3808166",
+    @Expose val longitude: String? = "-71.9265936",
     @Expose val value: JSONObject? = JSONObject("{}")
 ) {
     /*override fun toString(): String {

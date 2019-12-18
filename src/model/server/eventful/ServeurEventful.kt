@@ -16,16 +16,20 @@ interface ServeurEventful {
     @GET("/events/search")
     fun searchForEvents_(
         @Query("app_key") app_key: String,
-        @Query("location") location: String,
+        @Query("where") center: String,
         @Query("within") within: String,
         @Query("date") date: String,
         @Query("keywords") keywords: String,
         @Query("units") units: String,
-        @Query("count_only") count_only: String,
         @Query("sort_order") sort_oder: String,
-        @Query("page_size") page_size: String
+        @Query("page_size") page_size: String,
+        @Query("page_number") page_number: String
     ): Call<ResponseBody>
 
+
+    @GET("/events/search/")
+    fun searchForEventsBis_(
+    ): Call<ResponseBody>
 
     companion object {
         val app_key = Config.get().EVENTFUL.APP_KEY

@@ -5,6 +5,7 @@ import projetift604.model.place.Location
 import projetift604.model.place.Place
 import projetift604.model.place.Place_Info
 import projetift604.model.place.Place_Page
+import projetift604.model.server.eventful.ServerEventfulProxy
 import projetift604.server.fb.PlaceRepository
 import projetift604.server.fb.ServeurFBProxy
 import projetift604.user.SearchCall
@@ -25,7 +26,8 @@ fun search(data: JSONObject, resumeAt: Int = -1, sp: SearchParams, user: User, s
         }
         1 -> {
             System.out.println(" -- >")
-            //val events = ServerEventfulProxy.searchForEvents(1,sp,user,searchCall)
+            val events = ServerEventfulProxy.searchForEvents(1, sp, user, searchCall)
+            /*
             val events = ServeurFBProxy.searchForPlaces(
                 "45.4037978,-71.8900094",
                 "3000",
@@ -37,8 +39,9 @@ fun search(data: JSONObject, resumeAt: Int = -1, sp: SearchParams, user: User, s
                 user,
                 searchCall
             )!!
+            */
             System.out.println(" -- >")
-            return search(events, 2, sp, user, searchCall)
+            return search(events, -1, sp, user, searchCall)
         }
         2 -> {
             System.out.println(data)
@@ -105,7 +108,7 @@ data class SearchParamsData(
     val center: Location = Location(),
     val distance: String = "1000",
     val date: String = "today",
-    val keyworkds: String = ""
+    val keyworkds: String = "nightlife"
 )
 
 /**
@@ -158,8 +161,7 @@ abstract class ValidDate {
         }
 
         fun validate(s: String): String {
-            System.out.println("validation date -> [${s}]")
-            return when (s) {
+            val d = when (s) {
                 ALL -> ALL
                 FUTURE -> FUTURE
                 PAST -> PAST
@@ -170,6 +172,8 @@ abstract class ValidDate {
                 else -> TODAY
                 //"" -> make(s)
             }
+            System.out.println("-validation date: [${s}] -> [${d}]")
+            return d
         }
     }
 }

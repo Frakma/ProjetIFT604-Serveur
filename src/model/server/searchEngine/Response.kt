@@ -5,7 +5,7 @@ import org.json.JSONObject
 import projetift604.user.SearchCall
 import projetift604.user.User
 
-fun formatResponse(call: SearchCall, response: Response, user: User?): Response {
+fun formatResponse(call: SearchCall, response: Response, user: User?): String {
     user!!.addLastResearch(call, response)
     System.out.println(
         "-------------" + "\n" +
@@ -14,7 +14,7 @@ fun formatResponse(call: SearchCall, response: Response, user: User?): Response 
                 "user: ${user}" + "\n" +
                 "-------------" + "\n"
     )
-    return response
+    return response.toString()
 }
 
 data class Response(
