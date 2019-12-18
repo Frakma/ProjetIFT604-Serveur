@@ -27,9 +27,9 @@ import io.ktor.util.KtorExperimentalAPI
 import io.ktor.util.hex
 import org.json.JSONObject
 import projetift604.model.server.searchEngine.Response
+import projetift604.model.server.searchEngine.SearchEngine
 import projetift604.model.server.searchEngine.SearchParams
 import projetift604.model.server.searchEngine.formatResponse
-import projetift604.model.server.searchEngine.search
 import projetift604.server.UserRepository
 import projetift604.server.fb.ServeurFBProxy
 import projetift604.user.SearchCall
@@ -67,7 +67,7 @@ class ServeurREST {
                     sleep(e.retry_in)
                     LOCK.notify()
                 }
-                val placesCall = search(e.data!!, e.resumeAt!!, e.sp, user, searchCall!!)!!
+                val placesCall = SearchEngine.search(e.data!!, e.resumeAt!!, e.sp, user, searchCall!!)!!
 
                 val response = Response(status = "OK", data = placesCall)
                 call.respond(formatResponse(searchCall, response, user))
@@ -221,7 +221,7 @@ class ServeurREST {
                     System.out.println(sp)
 
  */
-                    val placesCall = search(
+                    val placesCall = SearchEngine.search(
                         JSONObject(sp.data),
                         resumeAt = sp.startAtPhase,
                         sp = sp,

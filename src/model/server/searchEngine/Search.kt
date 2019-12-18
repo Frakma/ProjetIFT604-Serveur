@@ -1,109 +1,87 @@
 package projetift604.model.server.searchEngine
 
 import SLog
+import com.google.gson.annotations.Expose
 import org.json.JSONObject
-import projetift604.model.place.Location
-import projetift604.model.place.Place
-import projetift604.model.place.Place_Info
-import projetift604.model.place.Place_Page
 import projetift604.model.server.eventful.ServerEventfulProxy
-import projetift604.server.fb.PlaceRepository
-import projetift604.server.fb.ServeurFBProxy
 import projetift604.user.SearchCall
 import projetift604.user.User
 
-val placeRepository = PlaceRepository()
-fun search(data: JSONObject, resumeAt: Int = -1, sp: SearchParams, user: User, searchCall: SearchCall): JSONObject? {
-    SLog.changeIndent(SLog.Companion.INDENT.MINUS)
-    SLog.log("[${resumeAt}]:")
-    SLog.changeIndent(SLog.Companion.INDENT.PLUS)
-    if (sp.stopAtPhase != -1) {
-        if (resumeAt > sp.stopAtPhase) {
-            return data
-        }
-    }
-    when (resumeAt) {
-        0 -> {
-            SLog.log("data: ${data}")
-            SLog.log("user: ${user}")
-            SLog.log("sp: ${sp}")
-            SLog.log("sc: ${searchCall}")
-            return search(data, 1, sp, user, searchCall)
-        }
-        1 -> {
-            val events = ServerEventfulProxy.searchForEvents(1, sp, user, searchCall)
-            /*
-            val events = ServeurFBProxy.searchForPlaces(
-                "45.4037978,-71.8900094",
-                "3000",
-                "bar",
-                "",
-                10,
-                0,
-                sp,
-                user,
-                searchCall
-            )!!
-            */
-            return search(events, -1, sp, user, searchCall)
-        }
-        2 -> {
-            System.out.println(data)
-            if (data.has("data")) {
-                val items = data.getJSONArray("data")
-                for (i in 0 until items.length()) {
-                    val place = items.getJSONObject(i)
-                    val name = place.getString("name")
-                    val id = place.getString("id")
-                    val structuredPlace = Place(id, name)
-                    val fieldsWanted =
-                        "name,location,category_list,description,hours,is_verified,payment_options,price_range,rating_count"
-
-                    val place_info = ServeurFBProxy.searchForPlaceInfo(
-                        placeId = id,
-                        fields = fieldsWanted,
-                        d = data,
-                        sp = sp,
-                        u = user,
-                        s = searchCall
-                    )!!
-                    place.put("place_info", place_info)
-                    var location: JSONObject = JSONObject()
-                    if (place_info.has("location")) {
-                        location = JSONObject(place_info.get("location"))
-                    }
-
-                    var page: JSONObject = JSONObject()
-                    var pageId: String = ""
-                    if (place_info.has("page")) {
-                        page = JSONObject(place_info.get("page"))
-                        if (page.has("id")) {
-                            pageId = page.getString("id")
-                        }
-                    }
-
-                    structuredPlace.place_info = Place_Info(
-                        pageId = pageId,
-                        location = Location(
-                            latitude = if (location.has("latitude")) location.getString("latitude") else "",
-                            longitude = if (location.has("longitude")) location.getString("longitude") else "",
-                            value = location
-                        ),
-                        page = Place_Page(
-                            dunno = place!!
-                        )
-                    )
-                    placeRepository.add(structuredPlace)
+class SearchEngine {
+    companion object {
+        fun search(
+            data: JSONObject,
+            resumeAt: Int = -1,
+            sp: SearchParams,
+            user: User,
+            searchCall: SearchCall
+        ): JSONObject? {
+            SLog.changeIndent(SLog.Companion.INDENT.MINUS)
+            SLog.log("[${resumeAt}]:")
+            SLog.changeIndent(SLog.Companion.INDENT.PLUS)
+            if (sp.stopAtPhase != -1) {
+                if (resumeAt > sp.stopAtPhase) {
+                    return data
                 }
-                val data_ = JSONObject(placeRepository)
-                //val paging = data.getJSONObject("paging")
-                //TODO("paging")
-                return search(data_, 3, sp, user, searchCall)
             }
-            return search(data, 3, sp, user, searchCall)
+            when (resumeAt) {
+                0 -> {
+                    SLog.log("data: ${data}")
+                    SLog.log("user: ${user}")
+                    SLog.log("sp: ${sp}")
+                    SLog.log("sc: ${searchCall}")
+                    return search(data, 1, sp, user, searchCall)
+                }
+                1 -> {
+                    val events = ServerEventfulProxy.searchForEvents(1, sp, user, searchCall)
+                    //val events = ServeurFBProxy.searchForPlaces("45.4037978,-71.8900094","3000","bar","",10,0,sp,user,searchCall)!!
+                    return search(events, 2, sp, user, searchCall)
+                }
+                2 -> {
+                    if (data.has("events")) {
+                        SLog.log("Events:")
+                        SLog.changeIndent(SLog.Companion.INDENT.PLUS)
+                        val items_ = data.getJSONObject("events")
+                        val items = items_.getJSONArray("event")
+                        for (i in 0 until items.length()) {
+                            val item = items.getJSONObject(i)
+                            SLog.log(
+                                "$i: ${item.getString("title")} https://www.google.fr/maps/place/${item.getString("latitude")},${item.getString(
+                                    "longitude"
+                                )}"
+                            )
+                        }
+                        SLog.changeIndent(SLog.Companion.INDENT.MINUS)
+                        val data_ = JSONObject("{}")
+                        //val paging = data.getJSONObject("paging")
+                        //TODO("paging")
+                        return search(data_, 3, sp, user, searchCall)
+                    }
+                    return search(data, 3, sp, user, searchCall)
+                }
+                else -> {
+                    return data
+                }
+            }
         }
-        else -> {
-            return data
+
+
+    }
+}
+
+
+data class Location(
+    @Expose val latitude: String? = "45.3808166",
+    @Expose val longitude: String? = "-71.9265936",
+    @Expose val value: JSONObject? = JSONObject("{}")
+) {
+    /*override fun toString(): String {
+        return "{lat:$latitude,lon:$longitude}"
+    }*/
+    companion object {
+        fun create(str: String): Location {
+            val str_spl = str.split(",")
+            return Location(str_spl[0], str_spl[1])
         }
     }
 }
@@ -148,6 +126,5 @@ data class SearchParams(
         }
     }
 }
-
 
 

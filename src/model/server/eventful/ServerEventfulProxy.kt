@@ -1,7 +1,6 @@
 package projetift604.model.server.eventful
 
 import SLog
-import okhttp3.MediaType
 import okhttp3.ResponseBody
 import org.json.JSONArray
 import org.json.JSONObject
@@ -18,7 +17,7 @@ class ServerEventfulProxy {
         private val serveurEventful = ServeurEventful.create()
 
         fun searchForEvents(resumeAt: Int?, sp: SearchParams, u: User, s: SearchCall): JSONObject {
-            SLog.log("fetching eventful...")
+            SLog.log("init eventful...")
             val spDate: String = sp.data.date
             val date = ValidDate.validate(spDate)
             val call = serveurEventful.searchForEvents_(
@@ -26,12 +25,13 @@ class ServerEventfulProxy {
                 center = sp.data.center.latitude + ',' + sp.data.center.longitude,
                 within = sp.data.distance,
                 date = date,
-                page_size = sp.limit.toString(),
+                page_size = "10",//sp.limit.toString(),
                 page_number = "1",
                 units = "km",
                 keywords = sp.data.keyworkds,
                 sort_oder = "relevance"
             )
+            SLog.log("fetching eventful... [${call.request().url()}]")
             val resp = call.execute()
             //System.out.println(resp)
             //System.out.println("------------")
@@ -62,10 +62,8 @@ class ServerEventfulProxy {
                     )
                     else jsonBody
                 }
-                else -> body = ResponseBody.create(
-                    MediaType.parse("application/json"),
-                    "{}"
-                )//ServeurFBProxy.FBunauthorizedRequest()
+                else -> restart(0, -1, sp, u, s)
+                //ServeurFBProxy.FBunauthorizedRequest()
                 //else -> throw java.lang.Exception(resp.errorBody().toString())
             }
             SLog.log("Extracted: ${data_.toString().subSequence(0, 150)}")
