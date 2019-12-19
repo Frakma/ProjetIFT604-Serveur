@@ -28,7 +28,7 @@ class ServerEventfulProxy {
                 page_size = "10",//sp.limit.toString(),
                 page_number = "1",
                 units = "km",
-                keywords = sp.data.keyworkds,
+                keywords = sp.data.keywords,
                 sort_oder = "relevance"
             )
             SLog.log("fetching eventful... [${call.request().url()}]")
