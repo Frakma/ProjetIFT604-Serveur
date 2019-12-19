@@ -1,6 +1,8 @@
 package projetift604.model.server.searchEngine
 
 import com.google.gson.annotations.Expose
+import io.ktor.http.Parameters
+import org.json.JSONException
 import org.json.JSONObject
 import projetift604.config.SLog
 import projetift604.model.server.eventful.ServerEventfulProxy
@@ -49,29 +51,27 @@ class SearchEngine {
                         for (i in 0 until items.length()) {
                             val item = items.getJSONObject(i)
 
-                            val id = if (item.has("id")) item.getString("id") else ""
-                            val title = if (item.has("title")) item.getString("title") else ""
-                            val location = if (item.has("latitude") && item.has("longitude")) Location(
-                                item.getString("latitude"),
-                                "${item.get("longitude")}"
-                            ) else Location()
-                            val image: JSONObject? = if (item.has("image")) item.getJSONObject("image") else null
-                            val performers: JSONObject? =
-                                if (item.has("performers")) item.getJSONObject("performers") else null
-                            val url: String? = if (item.has("url")) item.getString("url") else ""
-                            val startTime: String? = if (item.has("start_time")) item.getString("start_time") else ""
-
-                            val nItem = Event.create(id, title, location, image, performers, url, startTime)
                             SLog.log("$i:")
                             //SLog.log("$i: [$nItem]")
-                            SLog.log(
-                                "maps url: https://www.google.fr/maps/place/${nItem.location.latitude},${nItem.location.longitude}",
-                                true
-                            )
                             //SLog.log(item.keySet().toString(), true)
 
                             /**/
                             SLog.changeIndent(SLog.Companion.INDENT.PLUS)
+
+                            //SLog.log("$item", displayFull = true)
+                            val id = getJSONString(item, "id")!!
+                            val title = getJSONString(item, "title")!!
+                            val location = if (item.has("latitude") && item.has("longitude")) Location(
+                                item.getString("latitude"),
+                                "${item.get("longitude")}"
+                            ) else Location()
+                            val image = getJSONObject(item, "image")
+                            val performers = getJSONObject(item, "performers")
+                            val url = getJSONString(item, "url")
+                            val startTime = getJSONString(item, "start_time")
+
+                            val nItem = Event.create(id, title, location, image, performers, url, startTime)
+
                             SLog.log("id: ${nItem.id}")
                             SLog.log("title: ${nItem.title}")
                             SLog.log("maps url: https://www.google.fr/maps/place/${nItem.location.latitude},${nItem.location.longitude}")
@@ -98,6 +98,27 @@ class SearchEngine {
             }
         }
 
+        private fun getJSONObject(item: JSONObject, key: String): JSONObject? {
+            try {
+                return if (item.has(key) && !item.isNull(key)) {
+                    item.getJSONObject(key)
+                } else null
+            } catch (e: JSONException) {
+                System.err.println(e.localizedMessage)
+                return null
+            }
+        }
+
+        private fun getJSONString(item: JSONObject, key: String): String? {
+            try {
+                return if (item.has(key) && !item.isNull(key)) {
+                    item.getString(key)
+                } else null
+            } catch (e: JSONException) {
+                System.err.println(e.localizedMessage)
+                return null
+            }
+        }
 
     }
 }
@@ -139,20 +160,21 @@ data class SearchParams(
     val data: SearchParamsData = SearchParamsData()
 ) {
     companion object {
-        fun extract(ps_: JSONObject): SearchParams {
+        fun extract(ps_: Parameters): SearchParams {
+            //TODO(extract request params)
             SLog.log("params: ${ps_}")
-            val ps = ps_.toMap()
+            val ps = JSONObject(ps_.entries()).toMap()
             /*
-            val type: String = if (ps.containsKey("type")) ps.get("type")!!.get(0) else ""
-            val startAtPhase: Int = if (ps.containsKey("startAtPhase")) ps.get("startAtPhase")!!.get(0).toInt() else 0
-            val stopAtPhase: Int = if (ps.containsKey("stopAtPhase")) ps.get("stopAtPhase")!!.get(0).toInt() else -1
-            val callerObjectId: String = if (ps.containsKey("callerObjectId")) ps.get("callerObjectId")!!.get(0) else ""
-            val limit: Int = if (ps.containsKey("limit")) ps.get("limit")!!.get(0).toInt() else 10
-            val offset: Int = if (ps.containsKey("offset")) ps.get("offset")!!.get(0).toInt() else 0
+            val type: String = (ps.get("type") as String?)!!
+            val startAtPhase: Int = ((ps.get("startAtPhase") as Int?)!!)
+            val stopAtPhase: Int = (ps.get("stopAtPhase") as Int)
+            val callerObjectId: String = (ps.get("callerObjectId") as String?)!!
+            val limit: Int = (ps.get("limit") as Int)
+            val offset: Int = (ps.get("offset") as Int)
 
-            val data_ = JSONObject(ps.get("data")!!.get(0))
-            val center: Location = if (data_.has("center")) Location.create(data_.getString("center")) else Location()
-            val distance: String = if (data_.has("distance")) data_.getInt("distance").toString() else "1000"
+            val data_ = JSONObject(ps.get("data")!!)
+            val center: Location = if (ps.containsKey("center")) Location.create(ps.get("center") as String) else Location()
+            val distance: String = ps.get("distance") as String
             val data: SearchParamsData =
                 if (data_.has("data")) SearchParamsData(center, distance) else SearchParamsData()
 

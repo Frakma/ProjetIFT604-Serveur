@@ -4,6 +4,7 @@ package projetift604.config
 class SLog {
     companion object {
         private var indentLevel = 0
+        private val stopDisplayAboveLevel = -1
         private val strCharLimit = 160
 
         enum class INDENT { PLUS, MINUS, SAME, RESET }
@@ -12,13 +13,23 @@ class SLog {
             return "\t".repeat(indentLevel) + "ᐅ "
         }
 
-        fun log(str: String, indentOnce: Boolean = false) {
+        fun log(str: String, indentOnce: Boolean = false, displayFull: Boolean = false) {
             var str_ = str
             if (indentOnce) {
                 changeIndent(INDENT.PLUS)
             }
-            if (str.length > strCharLimit) {
-                str_ = str.substring(0, strCharLimit) + "..."
+            if (stopDisplayAboveLevel != -1) {
+                if (indentLevel > stopDisplayAboveLevel) {
+                    if (indentOnce) {
+                        changeIndent(INDENT.MINUS)
+                    }
+                    return
+                }
+            }
+            if (!displayFull) {
+                if (str.length > strCharLimit) {
+                    str_ = str.substring(0, strCharLimit) + "..."
+                }
             }
             System.out.println(indentToTab() + str_)
             if (indentOnce) {

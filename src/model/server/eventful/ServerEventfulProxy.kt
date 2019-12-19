@@ -125,7 +125,7 @@ abstract class ValidDate {
                 LASTWEEK -> LASTWEEK
                 THISWEEK -> THISWEEK
                 NEXTWEEK -> NEXTWEEK
-                else -> FUTURE
+                else -> THISWEEK
                 //"" -> make(s)
             }
             SLog.log("validated date: [${s}] -> [${d}]", true)

@@ -205,11 +205,11 @@ class ServeurREST {
                 }
                 post("") {
                     val callParameters = call.receiveParameters()
-                    SLog.log(call.toString())
+                    SLog.log(callParameters.toString())
                     val params = JSONObject(callParameters).toMap()
+                    val sp = SearchParams.extract(callParameters)
                     val searchCall = SearchCall(call.request.uri, JSONObject(params))
                     val user = takeCareOfUser(call)
-                    val sp = SearchParams.extract(searchCall.param)
 /*
                     val callParameters = "{}"//call.receiveParameters()
                     val params = JSONObject(callParameters).toMap()
