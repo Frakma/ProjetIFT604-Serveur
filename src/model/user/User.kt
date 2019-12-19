@@ -1,7 +1,6 @@
 package projetift604.user
 
 import com.google.gson.annotations.Expose
-import org.json.JSONObject
 import projetift604.model.server.searchEngine.Response
 import projetift604.server.generateHashWithHmac256
 import java.text.SimpleDateFormat
@@ -27,7 +26,7 @@ data class UserPref(@Expose val listPref: MutableMap<String, Pref> = mutableMapO
 
 data class SearchCall(
     @Expose val uri: String,
-    @Expose val param: JSONObject,
+    @Expose val param: String,
     @Expose val date: String = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(Date())
 ) {
     /*override fun toString(): String {

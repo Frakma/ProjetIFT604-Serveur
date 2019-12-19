@@ -27,7 +27,6 @@ import io.ktor.sessions.*
 import io.ktor.util.KtorExperimentalAPI
 import io.ktor.util.hex
 import org.json.JSONObject
-import projetift604.config.SLog
 import projetift604.model.server.searchEngine.Response
 import projetift604.model.server.searchEngine.SearchEngine
 import projetift604.model.server.searchEngine.SearchParams
@@ -164,39 +163,26 @@ class ServeurREST {
 
         routing {
             get("/") {
-                val params = JSONObject()
-                val searchCall = SearchCall(call.request.uri, params)
+                val cp = call.parameters
+                val sp = SearchParams.extract(cp)
+                val searchCall = SearchCall(call.request.uri, sp.toString())
                 val user = takeCareOfUser(call)
-                val response = Response(status = "OK", data = JSONObject(user).put("userPref", ""))
+                //val response = Response(status = "OK", data = JSONObject(user).put("userPref", ""))
+                val response = Response(status = "OK", data = JSONObject(user))
                 call.respond(formatResponse(searchCall, response, user))
             }
             get("/{userId}") {
-                val p = call.parameters
-                val params = JSONObject(p)
-                val searchCall = SearchCall(call.request.uri, params)
+                val cp = call.parameters
+                val sc = SearchCall(call.request.uri, cp.toString())
                 val session = call.sessions.get<LoginSession>()
-                val userId = if (params.has("userId")) params.getString("userId") else session!!.id
+                val userId = if (cp.contains("userId")) cp.get("userId")!! else session!!.id
                 val user = findUser(userId)
                 val status = if (user !== null) "OK" else "NOT OK"
                 if (user != null) {
                     call.sessions.set(LoginSession(user.id))
                 }
                 val response = Response(status = status, data = JSONObject(user))
-                call.respond(formatResponse(searchCall, response, user))
-            }
-            route("/callback") {
-                get("{args...}") {
-                    val p = call.parameters
-                    System.out.println(p)
-                    val params = JSONObject(p)
-                    val searchCall = SearchCall(call.request.uri, params)
-                    val session = call.sessions.get<LoginSession>()
-                    val userId = if (params.has("userId")) params.getString("userId") else session!!.id
-                    val user = findUser(userId)
-                    val response = Response(status = "OK", data = JSONObject().put("route", "'/callback/$params'"))
-                    call.respond(formatResponse(searchCall, response, user))
-                }
-                get("") { call.respond(Response(status = "OK")) }
+                call.respond(formatResponse(sc, response, user))
             }
             route("/search") {
                 get("") {
@@ -204,11 +190,9 @@ class ServeurREST {
                     //call.respond(Response(status = "OK"))
                 }
                 post("") {
-                    val callParameters = call.receiveParameters()
-                    SLog.log(callParameters.toString())
-                    val params = JSONObject(callParameters).toMap()
-                    val sp = SearchParams.extract(callParameters)
-                    val searchCall = SearchCall(call.request.uri, JSONObject(params))
+                    val cp = call.receiveParameters()
+                    val sp = SearchParams.extract(cp)
+                    val searchCall = SearchCall(call.request.uri, sp.toString())
                     val user = takeCareOfUser(call)
 /*
                     val callParameters = "{}"//call.receiveParameters()

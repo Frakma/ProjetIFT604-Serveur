@@ -144,7 +144,7 @@ data class SearchParamsData(
     val center: Location = Location(),
     val distance: String = "1000",
     val date: String = "today",
-    val keyworkds: String = "night"
+    val keywords: String = "night"
 )
 
 /**
