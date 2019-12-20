@@ -1,7 +1,6 @@
 package projetift604.model.server.searchEngine
 
 import com.google.gson.annotations.Expose
-import io.ktor.http.Parameters
 import org.json.JSONException
 import org.json.JSONObject
 import projetift604.config.SLog
@@ -160,10 +159,10 @@ data class SearchParams(
     val data: SearchParamsData = SearchParamsData()
 ) {
     companion object {
-        fun extract(ps_: Parameters): SearchParams {
+        fun extract(ps_: String): SearchParams {
             //TODO(extract request params)
             SLog.log("params: ${ps_}")
-            val ps = JSONObject(ps_.entries()).toMap()
+            //val ps = JSONObject(ps_).toMap()
             /*
             val type: String = (ps.get("type") as String?)!!
             val startAtPhase: Int = ((ps.get("startAtPhase") as Int?)!!)

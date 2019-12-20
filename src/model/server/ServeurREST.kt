@@ -12,7 +12,6 @@ import io.ktor.http.CacheControl
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.CachingOptions
-import io.ktor.request.receiveParameters
 import io.ktor.request.uri
 import io.ktor.response.respond
 import io.ktor.response.respondRedirect
@@ -204,7 +203,7 @@ class ServeurREST {
                     //call.respond(Response(status = "OK"))
                 }
                 post("") {
-                    val callParameters = call.receiveParameters()
+                    val callParameters =  "{}"//call.receiveParameters()
                     SLog.log(callParameters.toString())
                     val params = JSONObject(callParameters).toMap()
                     val sp = SearchParams.extract(callParameters)
