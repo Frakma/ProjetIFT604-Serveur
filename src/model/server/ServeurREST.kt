@@ -12,21 +12,19 @@ import io.ktor.http.CacheControl
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.CachingOptions
-import io.ktor.request.receiveParameters
+import io.ktor.request.header
 import io.ktor.request.uri
 import io.ktor.response.respond
 import io.ktor.response.respondRedirect
 import io.ktor.response.respondText
-import io.ktor.routing.get
-import io.ktor.routing.post
-import io.ktor.routing.route
-import io.ktor.routing.routing
+import io.ktor.routing.*
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.sessions.*
 import io.ktor.util.KtorExperimentalAPI
 import io.ktor.util.hex
 import org.json.JSONObject
+import projetift604.config.SLog
 import projetift604.model.server.searchEngine.Response
 import projetift604.model.server.searchEngine.SearchEngine
 import projetift604.model.server.searchEngine.SearchParams
@@ -190,8 +188,11 @@ class ServeurREST {
                     //call.respond(Response(status = "OK"))
                 }
                 post("") {
-                    val cp = call.receiveParameters()
-                    val sp = SearchParams.extract(cp)
+                    SLog.log(call.request.header("Content-Type")!!)
+                    //val cp = call.receiveParameters()
+                    //val cp = call.receive<String>()
+                    //val sp = SearchParams.extract(cp)
+                    val sp = SearchParams()
                     val searchCall = SearchCall(call.request.uri, sp.toString())
                     val user = takeCareOfUser(call)
 /*
@@ -216,6 +217,12 @@ class ServeurREST {
                     )!!
                     val response = Response(status = "OK", data = placesCall)
                     call.respond(formatResponse(searchCall, response, user))
+                }
+                put {
+                    redirect("/", false)
+                }
+                delete {
+                    redirect("/", false)
                 }
             }
         }

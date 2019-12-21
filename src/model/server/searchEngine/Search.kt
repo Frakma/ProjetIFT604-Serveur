@@ -2,9 +2,10 @@ package projetift604.model.server.searchEngine
 
 import com.google.gson.annotations.Expose
 import io.ktor.http.Parameters
-import org.json.JSONException
 import org.json.JSONObject
 import projetift604.config.SLog
+import projetift604.config.getJSONObject
+import projetift604.config.getJSONString
 import projetift604.model.server.eventful.ServerEventfulProxy
 import projetift604.model.server.eventful.events.Event
 import projetift604.model.server.eventful.events.EventRepository
@@ -97,29 +98,6 @@ class SearchEngine {
                 }
             }
         }
-
-        private fun getJSONObject(item: JSONObject, key: String): JSONObject? {
-            try {
-                return if (item.has(key) && !item.isNull(key)) {
-                    item.getJSONObject(key)
-                } else null
-            } catch (e: JSONException) {
-                System.err.println(e.localizedMessage)
-                return null
-            }
-        }
-
-        private fun getJSONString(item: JSONObject, key: String): String? {
-            try {
-                return if (item.has(key) && !item.isNull(key)) {
-                    item.getString(key)
-                } else null
-            } catch (e: JSONException) {
-                System.err.println(e.localizedMessage)
-                return null
-            }
-        }
-
     }
 }
 
@@ -140,12 +118,26 @@ data class Location(
     }
 }
 
+
 data class SearchParamsData(
     val center: Location = Location(),
     val distance: String = "1000",
     val date: String = "today",
     val keywords: String = "night"
-)
+) {
+    companion object {
+        fun create(json: JSONObject?): SearchParamsData {
+            if (json != null) {
+                val c = Location(getJSONString(json, "center"))
+                val d = getJSONString(json, "distance")!!
+                val da = getJSONString(json, "date")!!
+                val k = getJSONString(json, "keywords")!!
+                return SearchParamsData(c, d, da, k)
+            }
+            return SearchParamsData()
+        }
+    }
+}
 
 /**
  * params pour une requete effectuée vers "/search"
@@ -161,27 +153,47 @@ data class SearchParams(
 ) {
     companion object {
         fun extract(ps_: Parameters): SearchParams {
-            //TODO(extract request params)
             SLog.log("params: ${ps_}")
-            val ps = JSONObject(ps_.entries()).toMap()
-            /*
-            val type: String = (ps.get("type") as String?)!!
-            val startAtPhase: Int = ((ps.get("startAtPhase") as Int?)!!)
-            val stopAtPhase: Int = (ps.get("stopAtPhase") as Int)
-            val callerObjectId: String = (ps.get("callerObjectId") as String?)!!
-            val limit: Int = (ps.get("limit") as Int)
-            val offset: Int = (ps.get("offset") as Int)
+            val ps = ps_
+            /**/
+            val type = ps.get("type")!!
+            SLog.log(type.toString())
+            val startAtPhase = ps.get("startAtPhase")?.toInt()!!
+            val stopAtPhase = ps.get("stopAtPhase")?.toInt()!!
+            val callerObjectId = ps.get("callerObjectId")!!
+            val limit = ps.get("limit")?.toInt()!!
+            val offset = ps.get("offset")?.toInt()!!
 
             val data_ = JSONObject(ps.get("data")!!)
-            val center: Location = if (ps.containsKey("center")) Location.create(ps.get("center") as String) else Location()
-            val distance: String = ps.get("distance") as String
-            val data: SearchParamsData =
-                if (data_.has("data")) SearchParamsData(center, distance) else SearchParamsData()
+            SLog.log(data_.toString())
+            val data = SearchParamsData.create(data_)
+            SLog.log(data.toString())
+
 
             val sp = SearchParams(type, startAtPhase, stopAtPhase, callerObjectId, limit, offset, data)
 
-             */
-            val sp = SearchParams()
+            /**/
+            //val sp = SearchParams()
+            return sp
+        }
+
+        fun extract2(str: String): SearchParams {
+            SLog.log("params: ${str}")
+            val ps = JSONObject(str)
+            /**/
+            val type = getJSONString(ps, "type")!!
+            val startAtPhase = getJSONString(ps, "startAtPhase")?.toInt()!!
+            val stopAtPhase = getJSONString(ps, "stopAtPhase")?.toInt()!!
+            val callerObjectId = getJSONString(ps, "callerObjectId")!!
+            val limit = getJSONString(ps, "limit")?.toInt()!!
+            val offset = getJSONString(ps, "offset")?.toInt()!!
+
+            val data_ = getJSONObject(ps, "data")
+            SLog.log(data_.toString())
+            val data = SearchParamsData.create(data_)
+            SLog.log(data.toString())
+
+            val sp = SearchParams(type, startAtPhase, stopAtPhase, callerObjectId, limit, offset, data)
             return sp
         }
     }

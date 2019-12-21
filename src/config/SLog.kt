@@ -1,5 +1,8 @@
 package projetift604.config
 
+import org.json.JSONException
+import org.json.JSONObject
+
 
 class SLog {
     companion object {
@@ -47,5 +50,27 @@ class SLog {
                 else -> indentLevel = indentLevel
             }
         }
+    }
+}
+
+fun getJSONObject(item: JSONObject, key: String): JSONObject? {
+    try {
+        return if (item.has(key) && !item.isNull(key)) {
+            JSONObject(item.get(key))
+        } else null
+    } catch (e: JSONException) {
+        System.err.println(e)
+        return null
+    }
+}
+
+fun getJSONString(item: JSONObject, key: String): String? {
+    try {
+        return if (item.has(key) && !item.isNull(key)) {
+            item.get(key).toString()
+        } else null
+    } catch (e: JSONException) {
+        System.err.println(e)
+        return null
     }
 }
